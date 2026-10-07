@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Citas</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="citas.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link active">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+
+    <!-- MAIN -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <h2>
+                Citas
+            </h2>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <!-- PAGE HEADING -->
+
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Citas
+                    </h1>
+
+                    <p>
+                        Administra la agenda de la barbería.
+                    </p>
+
+                </div>
+
+                <button
+                    class="btn btn-dark"
+                    id="newAppointmentButton"
+                    type="button"
+                >
+                    + Nueva cita
+                </button>
+
+            </div>
+
+
+            <!-- FILTERS -->
+
+            <div class="filters">
+
+                <button
+                    class="filter active"
+                    data-filter="all"
+                    type="button"
+                >
+                    Todas
+                </button>
+
+                <button
+                    class="filter"
+                    data-filter="today"
+                    type="button"
+                >
+                    Hoy
+                </button>
+
+                <button
+                    class="filter"
+                    data-filter="pending"
+                    type="button"
+                >
+                    Pendientes
+                </button>
+
+                <button
+                    class="filter"
+                    data-filter="confirmed"
+                    type="button"
+                >
+                    Confirmadas
+                </button>
+
+                <button
+                    class="filter"
+                    data-filter="completed"
+                    type="button"
+                >
+                    Completadas
+                </button>
+
+                <button
+                    class="filter"
+                    data-filter="cancelled"
+                    type="button"
+                >
+                    Canceladas
+                </button>
+
+                <button
+                    class="filter"
+                    data-filter="no-show"
+                    type="button"
+                >
+                    No asistió
+                </button>
+
+            </div>
+
+
+            <!-- TABLE -->
+
+            <div class="panel">
+
+                <div class="table-wrapper">
+
+                    <table>
+
+                        <thead>
+
+                            <tr>
+
+                                <th>
+                                    Fecha
+                                </th>
+
+                                <th>
+                                    Hora
+                                </th>
+
+                                <th>
+                                    Cliente
+                                </th>
+
+                                <th>
+                                    Servicio
+                                </th>
+
+                                <th>
+                                    Barbero
+                                </th>
+
+                                <th>
+                                    Origen
+                                </th>
+
+                                <th>
+                                    Estado
+                                </th>
+
+                                <th>
+                                    Acciones
+                                </th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody
+                            id="appointmentsTable"
+                        ></tbody>
+
+                    </table>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL NUEVA CITA
+===================================================== -->
+
+<div
+    class="modal-overlay hidden"
+    id="appointmentModal"
+>
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Nueva cita
+                </h2>
+
+                <p>
+                    Registra una nueva reservación.
+                </p>
+
+            </div>
+
+            <button
+                class="modal-close"
+                id="closeModalButton"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <!-- CLIENTE -->
+
+            <section class="modal-section">
+
+                <h3>
+                    1. Cliente
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="appointmentPhone">
+                            Teléfono
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="appointmentPhone"
+                            placeholder="Ej. 667 123 4567"
+                        >
+
+                    </div>
+
+                    <div class="field">
+
+                        <label for="appointmentName">
+                            Nombre
+                        </label>
+
+                        <input
+                            type="text"
+                            id="appointmentName"
+                            placeholder="Nombre del cliente"
+                        >
+
+                    </div>
+
+                </div>
+
+                <div id="customerDetection"></div>
+
+            </section>
+
+
+            <!-- SERVICIO / BARBERO -->
+
+            <section class="modal-section">
+
+                <h3>
+                    2. Servicio y barbero
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="appointmentService">
+                            Servicio
+                        </label>
+
+                        <select
+                            id="appointmentService"
+                        ></select>
+
+                    </div>
+
+                    <div class="field">
+
+                        <label for="appointmentBarber">
+                            Barbero
+                        </label>
+
+                        <select
+                            id="appointmentBarber"
+                        ></select>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- FECHA / HORARIO -->
+
+            <section class="modal-section">
+
+                <h3>
+                    3. Fecha y horario
+                </h3>
+
+                <div class="field">
+
+                    <label for="appointmentDate">
+                        Fecha
+                    </label>
+
+                    <input
+                        type="date"
+                        id="appointmentDate"
+                    >
+
+                </div>
+
+                <div
+                    class="time-grid"
+                    id="appointmentTimes"
+                ></div>
+
+            </section>
+
+
+            <!-- INFORMACIÓN -->
+
+            <section class="modal-section">
+
+                <h3>
+                    4. Información adicional
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="appointmentOrigin">
+                            Origen
+                        </label>
+
+                        <select
+                            id="appointmentOrigin"
+                        >
+
+                            <option value="whatsapp">
+                                WhatsApp
+                            </option>
+
+                            <option value="instagram">
+                                Instagram
+                            </option>
+
+                            <option value="facebook">
+                                Facebook
+                            </option>
+
+                            <option value="phone">
+                                Teléfono
+                            </option>
+
+                            <option value="walk-in">
+                                En persona
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                    <div class="field">
+
+                        <label for="appointmentStatus">
+                            Estado
+                        </label>
+
+                        <select
+                            id="appointmentStatus"
+                        >
+
+                            <option value="confirmed">
+                                Confirmada
+                            </option>
+
+                            <option value="pending">
+                                Pendiente
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field top-space">
+
+                    <label for="appointmentNotes">
+                        Notas internas
+                    </label>
+
+                    <textarea
+                        id="appointmentNotes"
+                        placeholder="Ej. Cliente pidió fade bajo..."
+                    ></textarea>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                class="btn btn-outline"
+                id="cancelModalButton"
+                type="button"
+            >
+                Cancelar
+            </button>
+
+            <button
+                class="btn btn-dark"
+                id="saveAppointmentButton"
+                type="button"
+            >
+                Guardar cita
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<script
+    type="module"
+    src="js/appointments.js"
+></script>
+
+</body>
+</html>

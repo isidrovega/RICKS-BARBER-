@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Barberos</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="barberos.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link active">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <h2>
+                Barberos
+            </h2>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Equipo
+                    </h1>
+
+                    <p>
+                        Administra los barberos, servicios y horarios de trabajo.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-dark"
+                    id="newBarberButton"
+                >
+                    + Nuevo barbero
+                </button>
+
+            </div>
+
+
+            <!-- RESUMEN COMPACTO -->
+
+            <section
+                class="barber-summary"
+                id="barberSummary"
+            ></section>
+
+
+            <!-- TARJETAS -->
+
+            <section
+                class="barbers-grid barber-modern-grid"
+                id="barbersGrid"
+            ></section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL BARBERO
+===================================================== -->
+
+<div
+    class="modal-overlay hidden"
+    id="barberModal"
+>
+
+    <div class="modal barber-modern-modal">
+
+        <!-- HEADER -->
+
+        <div class="barber-modal-hero">
+
+            <div class="barber-modal-profile">
+
+                <div
+                    class="barber-modal-avatar"
+                    id="barberModalAvatar"
+                >
+                    NB
+                </div>
+
+                <div>
+
+                    <h2 id="barberModalTitle">
+                        Nuevo barbero
+                    </h2>
+
+                    <p>
+                        Configuración del miembro del equipo
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close barber-modern-close"
+                id="closeBarberModal"
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body barber-modern-body">
+
+            <!-- INFORMACIÓN -->
+
+            <section class="barber-config-section">
+
+                <div class="barber-config-title">
+
+                    <div>
+                        <span class="config-eyebrow">
+                            Información
+                        </span>
+
+                        <h3>
+                            Datos del barbero
+                        </h3>
+                    </div>
+
+                </div>
+
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="barberName">
+                            Nombre
+                        </label>
+
+                        <input
+                            type="text"
+                            id="barberName"
+                            placeholder="Ej. Carlos López"
+                            autocomplete="name"
+                        >
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="barberPhone">
+                            Teléfono
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="barberPhone"
+                            placeholder="Ej. 667 123 4567"
+                            autocomplete="tel"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div class="barber-active-row">
+
+                    <div>
+
+                        <strong>
+                            Barbero activo
+                        </strong>
+
+                        <p>
+                            Disponible para aparecer en la agenda.
+                        </p>
+
+                    </div>
+
+
+                    <label class="modern-switch">
+
+                        <input
+                            type="checkbox"
+                            id="barberActiveSwitch"
+                            checked
+                        >
+
+                        <span class="modern-switch-slider"></span>
+
+                    </label>
+
+                </div>
+
+            </section>
+
+
+            <!-- SERVICIOS -->
+
+            <section class="barber-config-section">
+
+                <div class="barber-config-title">
+
+                    <div>
+
+                        <span class="config-eyebrow">
+                            Servicios
+                        </span>
+
+                        <h3>
+                            ¿Qué puede realizar?
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="modern-service-grid"
+                    id="barberServices"
+                ></div>
+
+            </section>
+
+
+            <!-- HORARIO -->
+
+            <section class="barber-config-section">
+
+                <div class="barber-config-title">
+
+                    <div>
+
+                        <span class="config-eyebrow">
+                            Horario semanal
+                        </span>
+
+                        <h3>
+                            Disponibilidad
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="modern-schedule"
+                    id="scheduleEditor"
+                ></div>
+
+            </section>
+
+        </div>
+
+
+        <div class="modal-footer barber-modern-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="cancelBarberButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-dark"
+                id="saveBarberButton"
+            >
+                Guardar cambios
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<script
+    type="module"
+    src="js/barbers.js"
+></script>
+
+</body>
+</html>

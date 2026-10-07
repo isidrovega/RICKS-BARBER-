@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Clientes</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+   <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="clientes.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link active">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <h2>
+                Clientes
+            </h2>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <!-- =================================================
+                 PAGE HEADING
+            ================================================== -->
+
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Clientes
+                    </h1>
+
+                    <p>
+                        Consulta clientes, historial de citas y fidelidad.
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    class="btn btn-dark"
+                    id="newCustomerButton"
+                >
+                    + Nuevo cliente
+                </button>
+
+            </div>
+
+
+            <!-- =================================================
+                 ESTADÍSTICAS
+            ================================================== -->
+
+            <section
+                class="stats-grid"
+                id="customerStats"
+            ></section>
+
+
+            <!-- =================================================
+                 BÚSQUEDA
+            ================================================== -->
+
+            <section class="panel customer-search-panel">
+
+                <div class="customer-search">
+
+                    <div class="customer-search-icon">
+                        ⌕
+                    </div>
+
+                    <input
+                        type="search"
+                        id="customerSearch"
+                        placeholder="Buscar por nombre o teléfono..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 RESULTADOS
+            ================================================== -->
+
+            <div class="customer-list-header">
+
+                <div>
+
+                    <strong id="customerResultCount">
+                        Clientes
+                    </strong>
+
+                    <p>
+                        Selecciona un cliente para consultar su información.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <section
+                class="customers-grid"
+                id="customersGrid"
+            ></section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL DETALLE DEL CLIENTE
+===================================================== -->
+
+<div
+    class="modal-overlay hidden"
+    id="customerModal"
+>
+
+    <div class="modal customer-modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2 id="customerModalName">
+                    Cliente
+                </h2>
+
+                <p id="customerModalPhone">
+                    Teléfono
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeCustomerModal"
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <!-- =================================================
+                 RESUMEN
+            ================================================== -->
+
+            <div class="customer-detail-stats">
+
+                <div class="customer-detail-stat">
+
+                    <span>
+                        Visitas
+                    </span>
+
+                    <strong id="modalVisits">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="customer-detail-stat">
+
+                    <span>
+                        Citas
+                    </span>
+
+                    <strong id="modalAppointments">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="customer-detail-stat">
+
+                    <span>
+                        Completadas
+                    </span>
+
+                    <strong id="modalCompleted">
+                        0
+                    </strong>
+
+                </div>
+
+
+                <div class="customer-detail-stat">
+
+                    <span>
+                        Canceladas
+                    </span>
+
+                    <strong id="modalCancelled">
+                        0
+                    </strong>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 FIDELIDAD
+            ================================================== -->
+
+            <section class="customer-detail-section">
+
+                <div class="section-title-row">
+
+                    <div>
+
+                        <h3>
+                            Fidelidad
+                        </h3>
+
+                        <p id="loyaltyDescription">
+                            Progreso del cliente
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="loyalty-stamps"
+                    id="modalLoyaltyStamps"
+                ></div>
+
+
+                <div class="loyalty-progress-bar">
+
+                    <div
+                        class="loyalty-progress-fill"
+                        id="modalLoyaltyProgress"
+                    ></div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 HISTORIAL
+            ================================================== -->
+
+            <section class="customer-detail-section">
+
+                <div class="section-title-row">
+
+                    <div>
+
+                        <h3>
+                            Historial de citas
+                        </h3>
+
+                        <p>
+                            Reservaciones registradas para este cliente.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    class="customer-history"
+                    id="customerHistory"
+                ></div>
+
+            </section>
+
+        </div>
+
+
+        <div class="modal-footer customer-modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="addVisitButton"
+            >
+                + Registrar visita
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-dark"
+                id="bookCustomerButton"
+            >
+                + Agendar cita
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL NUEVO CLIENTE
+===================================================== -->
+
+<div
+    class="modal-overlay hidden"
+    id="newCustomerModal"
+>
+
+    <div class="modal small-modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Nuevo cliente
+                </h2>
+
+                <p>
+                    Registra un cliente sin necesidad de crear una cita.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeNewCustomerModal"
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <div class="form-grid">
+
+                <div class="field">
+
+                    <label for="newCustomerName">
+                        Nombre
+                    </label>
+
+                    <input
+                        type="text"
+                        id="newCustomerName"
+                        placeholder="Ej. José Martínez"
+                        autocomplete="name"
+                    >
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="newCustomerPhone">
+                        Teléfono
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="newCustomerPhone"
+                        placeholder="Ej. 667 123 4567"
+                        autocomplete="tel"
+                    >
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="cancelNewCustomer"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-dark"
+                id="saveNewCustomer"
+            >
+                Guardar cliente
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     TOAST
+===================================================== -->
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script
+    type="module"
+    src="js/customers.js"
+></script>
+
+</body>
+</html>

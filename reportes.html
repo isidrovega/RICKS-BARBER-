@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Reportes</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="reportes.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link active">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <h2>
+                Reportes
+            </h2>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Reportes
+                    </h1>
+
+                    <p>
+                        Consulta el rendimiento general de la barbería.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <!-- PERIOD -->
+            <section class="module-toolbar">
+
+                <div>
+
+                    <strong class="module-toolbar-title">
+                        Período
+                    </strong>
+
+                    <span
+                        class="module-toolbar-description"
+                        id="reportDateRange"
+                    >
+                        Últimos 7 días
+                    </span>
+
+                </div>
+
+
+                <div class="module-filters">
+
+                    <button
+                        type="button"
+                        class="filter"
+                        data-period="today"
+                    >
+                        Hoy
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter active"
+                        data-period="week"
+                    >
+                        7 días
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter"
+                        data-period="month"
+                    >
+                        30 días
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter"
+                        data-period="all"
+                    >
+                        Todo
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <!-- SUMMARY -->
+            <section
+                class="module-summary"
+                id="reportSummary"
+            ></section>
+
+
+            <!-- REPORT CARDS -->
+            <section class="module-card-grid report-unified-grid">
+
+                <article class="unified-card report-module-card">
+
+                    <div class="unified-card-header">
+
+                        <div class="unified-card-person">
+
+                            <div class="unified-card-avatar">
+                                $
+                            </div>
+
+                            <div class="unified-card-title">
+
+                                <h3>
+                                    Ingresos
+                                </h3>
+
+                                <span>
+                                    Rendimiento
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="report-simple-content"
+                        id="revenueReport"
+                    ></div>
+
+                </article>
+
+
+                <article class="unified-card report-module-card">
+
+                    <div class="unified-card-header">
+
+                        <div class="unified-card-person">
+
+                            <div class="unified-card-avatar">
+                                ◷
+                            </div>
+
+                            <div class="unified-card-title">
+
+                                <h3>
+                                    Citas
+                                </h3>
+
+                                <span>
+                                    Estados
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="report-simple-content"
+                        id="statusReport"
+                    ></div>
+
+                </article>
+
+
+                <article class="unified-card report-module-card">
+
+                    <div class="unified-card-header">
+
+                        <div class="unified-card-person">
+
+                            <div class="unified-card-avatar">
+                                ≡
+                            </div>
+
+                            <div class="unified-card-title">
+
+                                <h3>
+                                    Servicios
+                                </h3>
+
+                                <span>
+                                    Actividad
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="report-simple-content"
+                        id="servicesReport"
+                    ></div>
+
+                </article>
+
+
+                <article class="unified-card report-module-card">
+
+                    <div class="unified-card-header">
+
+                        <div class="unified-card-person">
+
+                            <div class="unified-card-avatar">
+                                ✂
+                            </div>
+
+                            <div class="unified-card-title">
+
+                                <h3>
+                                    Barberos
+                                </h3>
+
+                                <span>
+                                    Actividad
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="report-simple-content"
+                        id="barbersReport"
+                    ></div>
+
+                </article>
+
+
+                <article class="unified-card report-module-card report-origin-card-wide">
+
+                    <div class="unified-card-header">
+
+                        <div class="unified-card-person">
+
+                            <div class="unified-card-avatar">
+                                ↗
+                            </div>
+
+                            <div class="unified-card-title">
+
+                                <h3>
+                                    Origen de citas
+                                </h3>
+
+                                <span>
+                                    Canales
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div
+                        class="report-simple-content"
+                        id="originsReport"
+                    ></div>
+
+                </article>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<script
+    type="module"
+    src="js/reports.js"
+></script>
+
+</body>
+</html>

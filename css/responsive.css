@@ -1,0 +1,146 @@
+@media (max-width: 1050px) {
+
+    .stats-grid {
+        grid-template-columns:
+            repeat(2, 1fr);
+    }
+
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+}
+
+
+@media (max-width: 800px) {
+
+    .app {
+        display: block;
+    }
+
+
+    .sidebar {
+        position: static;
+
+        width: 100%;
+
+        min-height: auto;
+
+        display: flex;
+
+        align-items: center;
+
+        overflow-x: auto;
+
+        padding: 10px;
+    }
+
+
+    .sidebar-brand {
+        padding:
+            0 20px 0 5px;
+
+        white-space: nowrap;
+    }
+
+
+    .sidebar-label {
+        display: none;
+    }
+
+
+    .sidebar-nav {
+        flex-direction: row;
+    }
+
+
+    .sidebar-link {
+        white-space: nowrap;
+    }
+
+
+    .sidebar-link.disabled {
+        display: none;
+    }
+
+
+    .main {
+        width: 100%;
+    }
+
+
+    .topbar {
+        position: static;
+
+        padding:
+            0 18px;
+    }
+
+
+    .content {
+        padding: 20px;
+    }
+
+
+    .page-heading {
+        align-items: flex-start;
+
+        flex-direction: column;
+    }
+
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .time-grid {
+        grid-template-columns:
+            repeat(4, 1fr);
+    }
+
+
+    .dashboard-appointment {
+        grid-template-columns:
+            70px
+            1fr;
+    }
+
+
+    .appointment-barber,
+    .appointment-status {
+        grid-column: 2;
+    }
+
+}
+
+
+@media (max-width: 520px) {
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+
+    .time-grid {
+        grid-template-columns:
+            repeat(3, 1fr);
+    }
+
+
+    .admin-user span {
+        display: none;
+    }
+
+
+    .modal-overlay {
+        padding: 8px;
+    }
+
+
+    .modal {
+        max-height: 96vh;
+    }
+
+}

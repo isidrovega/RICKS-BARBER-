@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Dashboard</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+  <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="index.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link active">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <div>
+                <h2>Dashboard</h2>
+            </div>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <!-- =================================================
+                 PAGE HEADING
+            ================================================== -->
+
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Dashboard
+                    </h1>
+
+                    <p>
+                        Resumen general de BARBER SHOP.
+                    </p>
+
+                </div>
+
+                <div class="heading-actions">
+
+                    <button
+                        type="button"
+                        class="btn btn-dark"
+                        id="newAppointmentButton"
+                    >
+                        + Nueva cita
+                    </button>
+
+                    <button
+                        type="button"
+                        class="btn btn-outline"
+                        id="qrButton"
+                    >
+                        Escanear QR
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 STATS
+            ================================================== -->
+
+            <section
+                class="stats-grid"
+                id="dashboardStats"
+            ></section>
+
+
+            <!-- =================================================
+                 DASHBOARD GRID
+            ================================================== -->
+
+            <section class="dashboard-grid">
+
+                <!-- PRÓXIMAS CITAS -->
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                Próximas citas
+                            </h3>
+
+                            <p>
+                                Agenda de la barbería
+                            </p>
+
+                        </div>
+
+                        <a
+                            href="citas.html"
+                            class="text-link"
+                        >
+                            Ver todas
+                        </a>
+
+                    </div>
+
+
+                    <div
+                        class="panel-body"
+                        id="dashboardAppointments"
+                    ></div>
+
+                </div>
+
+
+                <!-- ACCIONES RÁPIDAS -->
+
+                <div class="panel">
+
+                    <div class="panel-header">
+
+                        <div>
+
+                            <h3>
+                                Acciones rápidas
+                            </h3>
+
+                            <p>
+                                Operaciones frecuentes
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel-body">
+
+                        <div class="quick-actions">
+
+                            <button
+                                type="button"
+                                class="btn btn-dark full"
+                                id="quickNewAppointment"
+                            >
+                                + Agendar cita
+                            </button>
+
+                            <a
+                                href="citas.html"
+                                class="btn btn-outline full center"
+                            >
+                                Ver agenda
+                            </a>
+
+                            <a
+                                href="clientes.html"
+                                class="btn btn-outline full center"
+                            >
+                                Buscar cliente
+                            </a>
+
+                            <a
+                                href="barberos.html"
+                                class="btn btn-outline full center"
+                            >
+                                Administrar barberos
+                            </a>
+
+                            <button
+                                type="button"
+                                class="btn btn-outline full"
+                                disabled
+                            >
+                                Programa de fidelidad
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     MODAL NUEVA CITA
+===================================================== -->
+
+<div
+    class="modal-overlay hidden"
+    id="appointmentModal"
+>
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div>
+
+                <h2>
+                    Nueva cita
+                </h2>
+
+                <p>
+                    Registra una reservación recibida por redes,
+                    llamada o directamente en la barbería.
+                </p>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                id="closeModalButton"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="modal-body">
+
+            <!-- =================================================
+                 CLIENTE
+            ================================================== -->
+
+            <section class="modal-section">
+
+                <h3>
+                    1. Cliente
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="appointmentPhone">
+                            Teléfono
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="appointmentPhone"
+                            placeholder="Ej. 667 123 4567"
+                            autocomplete="tel"
+                        >
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="appointmentName">
+                            Nombre
+                        </label>
+
+                        <input
+                            type="text"
+                            id="appointmentName"
+                            placeholder="Nombre del cliente"
+                            autocomplete="name"
+                        >
+
+                    </div>
+
+                </div>
+
+
+                <div id="customerDetection"></div>
+
+            </section>
+
+
+            <!-- =================================================
+                 SERVICIO Y BARBERO
+            ================================================== -->
+
+            <section class="modal-section">
+
+                <h3>
+                    2. Servicio y barbero
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="appointmentService">
+                            Servicio
+                        </label>
+
+                        <select
+                            id="appointmentService"
+                        ></select>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="appointmentBarber">
+                            Barbero
+                        </label>
+
+                        <select
+                            id="appointmentBarber"
+                        ></select>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- =================================================
+                 FECHA Y HORARIO
+            ================================================== -->
+
+            <section class="modal-section">
+
+                <h3>
+                    3. Fecha y horario
+                </h3>
+
+                <div class="field">
+
+                    <label for="appointmentDate">
+                        Fecha
+                    </label>
+
+                    <input
+                        type="date"
+                        id="appointmentDate"
+                    >
+
+                </div>
+
+
+                <div
+                    class="time-grid"
+                    id="appointmentTimes"
+                ></div>
+
+            </section>
+
+
+            <!-- =================================================
+                 INFORMACIÓN ADICIONAL
+            ================================================== -->
+
+            <section class="modal-section">
+
+                <h3>
+                    4. Información adicional
+                </h3>
+
+                <div class="form-grid">
+
+                    <div class="field">
+
+                        <label for="appointmentOrigin">
+                            Origen
+                        </label>
+
+                        <select id="appointmentOrigin">
+
+                            <option value="whatsapp">
+                                WhatsApp
+                            </option>
+
+                            <option value="instagram">
+                                Instagram
+                            </option>
+
+                            <option value="facebook">
+                                Facebook
+                            </option>
+
+                            <option value="phone">
+                                Teléfono
+                            </option>
+
+                            <option value="walk-in">
+                                En persona
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="appointmentStatus">
+                            Estado
+                        </label>
+
+                        <select id="appointmentStatus">
+
+                            <option value="confirmed">
+                                Confirmada
+                            </option>
+
+                            <option value="pending">
+                                Pendiente
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field top-space">
+
+                    <label for="appointmentNotes">
+                        Notas internas
+                    </label>
+
+                    <textarea
+                        id="appointmentNotes"
+                        placeholder="Ej. Cliente pidió fade bajo..."
+                    ></textarea>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <div class="modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="cancelModalButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-dark"
+                id="saveAppointmentButton"
+            >
+                Guardar cita
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =====================================================
+     TOAST
+===================================================== -->
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<!-- =====================================================
+     JAVASCRIPT
+===================================================== -->
+
+<script
+    type="module"
+    src="js/admin.js"
+></script>
+
+</body>
+</html>

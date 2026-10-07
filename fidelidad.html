@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Fidelidad</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="fidelidad.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link active">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+    <main class="main">
+
+        <header class="topbar">
+
+            <h2>
+                Fidelidad
+            </h2>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Fidelidad
+                    </h1>
+
+                    <p>
+                        Consulta el progreso y las recompensas de tus clientes.
+                    </p>
+
+                </div>
+
+                <div class="heading-actions">
+
+                    <button
+                        type="button"
+                        class="btn btn-dark"
+                        id="registerVisitButton"
+                    >
+                        + Registrar visita
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- RESUMEN -->
+            <section
+                class="module-summary"
+                id="loyaltySummary"
+            ></section>
+
+
+            <!-- BÚSQUEDA -->
+            <section class="module-toolbar">
+
+                <div class="module-search">
+
+                    <span>
+                        ⌕
+                    </span>
+
+                    <input
+                        type="text"
+                        id="loyaltySearch"
+                        placeholder="Buscar por nombre o teléfono..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <div class="module-filters">
+
+                    <button
+                        type="button"
+                        class="filter active"
+                        data-filter="all"
+                    >
+                        Todos
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter"
+                        data-filter="progress"
+                    >
+                        En progreso
+                    </button>
+
+                    <button
+                        type="button"
+                        class="filter"
+                        data-filter="reward"
+                    >
+                        Con recompensa
+                    </button>
+
+                </div>
+
+            </section>
+
+
+            <div class="module-list-heading">
+
+                <div>
+
+                    <strong>
+                        Clientes
+                    </strong>
+
+                    <p id="loyaltyResultCount">
+                        0 clientes
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <section
+                class="module-card-grid"
+                id="loyaltyGrid"
+            ></section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =========================================================
+     CLIENT DETAIL MODAL
+========================================================= -->
+<div
+    class="modal-overlay hidden"
+    id="loyaltyModal"
+>
+
+    <div class="modal unified-modal">
+
+        <div class="unified-modal-header">
+
+            <div class="unified-modal-profile">
+
+                <div
+                    class="unified-modal-avatar"
+                    id="loyaltyModalAvatar"
+                >
+                    JP
+                </div>
+
+                <div>
+
+                    <h2 id="loyaltyModalName">
+                        Cliente
+                    </h2>
+
+                    <p id="loyaltyModalPhone">
+                        —
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close unified-modal-close"
+                id="closeLoyaltyModal"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="unified-modal-body">
+
+            <section class="unified-config-section">
+
+                <div class="unified-section-heading">
+
+                    <div>
+
+                        <span class="config-eyebrow">
+                            Fidelidad
+                        </span>
+
+                        <h3>
+                            Progreso actual
+                        </h3>
+
+                    </div>
+
+                    <span
+                        class="unified-status"
+                        id="loyaltyRewardStatus"
+                    >
+                        En progreso
+                    </span>
+
+                </div>
+
+
+                <div class="loyalty-simple-progress">
+
+                    <div
+                        class="loyalty-stamp-row"
+                        id="loyaltyModalStamps"
+                    ></div>
+
+                    <div class="loyalty-progress-bar">
+
+                        <div
+                            class="loyalty-progress-fill"
+                            id="loyaltyModalProgress"
+                        ></div>
+
+                    </div>
+
+                    <p id="loyaltyModalDescription">
+                        0/5 visitas
+                    </p>
+
+                </div>
+
+            </section>
+
+
+            <section class="unified-config-section">
+
+                <div class="unified-section-heading">
+
+                    <div>
+
+                        <span class="config-eyebrow">
+                            Actividad
+                        </span>
+
+                        <h3>
+                            Resumen del cliente
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="unified-detail-grid">
+
+                    <div>
+
+                        <span>
+                            Visitas
+                        </span>
+
+                        <strong id="loyaltyModalVisits">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Ganadas
+                        </span>
+
+                        <strong id="loyaltyModalEarned">
+                            0
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Canjeadas
+                        </span>
+
+                        <strong id="loyaltyModalRedeemed">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <div class="modal-footer unified-modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="redeemRewardButton"
+            >
+                Canjear recompensa
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-dark"
+                id="addVisitModalButton"
+            >
+                + Registrar visita
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REGISTER VISIT MODAL
+========================================================= -->
+<div
+    class="modal-overlay hidden"
+    id="visitModal"
+>
+
+    <div class="modal unified-modal small-unified-modal">
+
+        <div class="unified-modal-header">
+
+            <div class="unified-modal-profile">
+
+                <div class="unified-modal-avatar">
+                    +
+                </div>
+
+                <div>
+
+                    <h2>
+                        Registrar visita
+                    </h2>
+
+                    <p>
+                        Selecciona un cliente
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close unified-modal-close"
+                id="closeVisitModal"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <div class="unified-modal-body">
+
+            <section class="unified-config-section">
+
+                <div class="field">
+
+                    <label for="visitCustomerSearch">
+                        Buscar cliente
+                    </label>
+
+                    <input
+                        type="text"
+                        id="visitCustomerSearch"
+                        placeholder="Nombre o teléfono..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <div
+                    class="simple-customer-results"
+                    id="visitCustomerResults"
+                ></div>
+
+            </section>
+
+        </div>
+
+
+        <div class="modal-footer unified-modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="cancelVisitButton"
+            >
+                Cancelar
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<script
+    type="module"
+    src="js/loyalty.js"
+></script>
+
+</body>
+</html>

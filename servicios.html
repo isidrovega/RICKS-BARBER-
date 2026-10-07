@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Rick's Barber Shop | Servicios</title>
+
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/admin.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+
+<body>
+
+<div class="app">
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+    <aside class="sidebar">
+
+    <div class="sidebar-brand">
+        <a
+            href="servicios.html"
+            class="sidebar-logo-link"
+            aria-label="Rick's Barber Shop - Inicio"
+        >
+            <img
+                src="assets/logo.png"
+                alt="Rick's Barber Shop"
+                class="sidebar-logo"
+            >
+        </a>
+    </div>
+
+    <span class="sidebar-label">Menú</span>
+
+    <nav class="sidebar-nav">
+
+        <a href="index.html" class="sidebar-link">
+            <span>⌂</span>
+            Dashboard
+        </a>
+
+        <a href="citas.html" class="sidebar-link">
+            <span>◷</span>
+            Citas
+        </a>
+
+        <a href="clientes.html" class="sidebar-link">
+            <span>♙</span>
+            Clientes
+        </a>
+
+        <a href="barberos.html" class="sidebar-link">
+            <span>✂</span>
+            Barberos
+        </a>
+
+        <a href="servicios.html" class="sidebar-link active">
+            <span>▤</span>
+            Servicios
+        </a>
+
+        <a href="fidelidad.html" class="sidebar-link">
+            <span>★</span>
+            Fidelidad
+        </a>
+
+        <a href="reportes.html" class="sidebar-link">
+            <span>▥</span>
+            Reportes
+        </a>
+
+    </nav>
+
+</aside>
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+    <main class="main">
+
+        <header class="topbar">
+
+            <h2>
+                Servicios
+            </h2>
+
+            <div class="admin-user">
+
+                <span>
+                    Administrador
+                </span>
+
+                <div class="avatar">
+                    A
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <div class="content">
+
+            <!-- =================================================
+                 PAGE HEADER
+            ================================================== -->
+            <div class="page-heading">
+
+                <div>
+
+                    <h1>
+                        Servicios
+                    </h1>
+
+                    <p>
+                        Administra los servicios disponibles en la barbería.
+                    </p>
+
+                </div>
+
+                <div class="heading-actions">
+
+                    <button
+                        type="button"
+                        class="btn btn-dark"
+                        id="newServiceButton"
+                    >
+                        + Nuevo servicio
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- =================================================
+                 SUMMARY
+            ================================================== -->
+            <section
+                class="module-summary"
+                id="serviceSummary"
+            ></section>
+
+
+            <!-- =================================================
+                 SERVICES
+            ================================================== -->
+            <section
+                class="module-card-grid"
+                id="servicesGrid"
+            ></section>
+
+        </div>
+
+    </main>
+
+</div>
+
+
+<!-- =========================================================
+     SERVICE MODAL
+========================================================= -->
+<div
+    class="modal-overlay hidden"
+    id="serviceModal"
+>
+
+    <div class="modal unified-modal">
+
+        <!-- HEADER -->
+        <div class="unified-modal-header">
+
+            <div class="unified-modal-profile">
+
+                <div
+                    class="unified-modal-avatar"
+                    id="serviceModalAvatar"
+                >
+                    ✂
+                </div>
+
+                <div>
+
+                    <h2 id="serviceModalTitle">
+                        Nuevo servicio
+                    </h2>
+
+                    <p>
+                        Configuración del servicio
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                type="button"
+                class="modal-close unified-modal-close"
+                id="closeServiceModal"
+                aria-label="Cerrar"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <!-- BODY -->
+        <div class="unified-modal-body">
+
+            <!-- INFORMACIÓN -->
+            <section class="unified-config-section">
+
+                <div class="unified-section-heading">
+
+                    <div>
+
+                        <span class="config-eyebrow">
+                            Información
+                        </span>
+
+                        <h3>
+                            Datos del servicio
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="field">
+
+                    <label for="serviceName">
+                        Nombre del servicio
+                    </label>
+
+                    <input
+                        type="text"
+                        id="serviceName"
+                        placeholder="Ej. Corte clásico"
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+                <div class="form-grid service-form-grid">
+
+                    <div class="field">
+
+                        <label for="servicePrice">
+                            Precio
+                        </label>
+
+                        <div class="input-prefix">
+
+                            <span>
+                                $
+                            </span>
+
+                            <input
+                                type="number"
+                                id="servicePrice"
+                                min="0"
+                                step="1"
+                                placeholder="250"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="serviceDuration">
+                            Duración
+                        </label>
+
+                        <div class="input-suffix">
+
+                            <input
+                                type="number"
+                                id="serviceDuration"
+                                min="5"
+                                step="5"
+                                placeholder="30"
+                            >
+
+                            <span>
+                                min
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- DISPONIBILIDAD -->
+            <section class="unified-config-section">
+
+                <div class="unified-section-heading">
+
+                    <div>
+
+                        <span class="config-eyebrow">
+                            Disponibilidad
+                        </span>
+
+                        <h3>
+                            Estado del servicio
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="unified-active-row">
+
+                    <div>
+
+                        <strong>
+                            Servicio activo
+                        </strong>
+
+                        <p>
+                            Podrá seleccionarse al crear nuevas citas.
+                        </p>
+
+                    </div>
+
+
+                    <label class="modern-switch">
+
+                        <input
+                            type="checkbox"
+                            id="serviceActiveSwitch"
+                            checked
+                        >
+
+                        <span class="modern-switch-slider"></span>
+
+                    </label>
+
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <!-- FOOTER -->
+        <div class="modal-footer unified-modal-footer">
+
+            <button
+                type="button"
+                class="btn btn-outline"
+                id="cancelServiceButton"
+            >
+                Cancelar
+            </button>
+
+            <button
+                type="button"
+                class="btn btn-dark"
+                id="saveServiceButton"
+            >
+                Guardar cambios
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TOAST
+========================================================= -->
+<div
+    class="toast"
+    id="toast"
+></div>
+
+
+<script
+    type="module"
+    src="js/services.js"
+></script>
+
+</body>
+</html>

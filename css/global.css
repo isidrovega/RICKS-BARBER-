@@ -1,0 +1,356 @@
+:root {
+    /* =====================================================
+       RICK'S BARBER SHOP
+    ===================================================== */
+
+    --brand: #850817;
+    --brand-dark: #650611;
+    --brand-deep: #43030a;
+    --brand-hover: #9b1021;
+    --brand-soft: #f8ecee;
+
+    /* =====================================================
+       BASE
+    ===================================================== */
+
+    --background: #f4f5f5;
+    --surface: #ffffff;
+    --surface-secondary: #fafafa;
+
+    --border: #e2e3e3;
+
+    --text: #202124;
+    --muted: #707276;
+
+    --dark: var(--brand-dark);
+
+    /* =====================================================
+       STATUS
+    ===================================================== */
+
+    --green: #27764d;
+    --green-light: #eaf6ef;
+
+    --blue: #356fa8;
+    --blue-light: #edf4fb;
+
+    --orange: #a96c25;
+    --orange-light: #fff4e8;
+
+    --red: #b84a4a;
+    --red-light: #fceded;
+
+    --purple: #68578b;
+
+    --radius: 12px;
+
+    --shadow:
+        0 5px 20px
+        rgba(67, 3, 10, 0.06);
+}
+
+
+/* =====================================================
+   RESET
+===================================================== */
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+
+html {
+    scroll-behavior: smooth;
+}
+
+
+body {
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+
+    background: var(--background);
+    color: var(--text);
+}
+
+
+button,
+input,
+select,
+textarea {
+    font: inherit;
+}
+
+
+button {
+    cursor: pointer;
+}
+
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+
+.hidden {
+    display: none !important;
+}
+
+
+/* =====================================================
+   BUTTONS
+===================================================== */
+
+.btn {
+    border: none;
+
+    border-radius: 9px;
+
+    padding: 12px 17px;
+
+    font-weight: 700;
+
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease,
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+
+.btn:not(:disabled):hover {
+    transform: translateY(-1px);
+}
+
+
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+
+.btn-dark {
+    background: var(--brand);
+    color: #ffffff;
+
+    box-shadow:
+        0 5px 14px
+        rgba(133, 8, 23, 0.16);
+}
+
+
+.btn-dark:hover {
+    background: var(--brand-hover);
+}
+
+
+.btn-outline {
+    background: #ffffff;
+
+    border:
+        1px solid
+        var(--border);
+
+    color: var(--text);
+}
+
+
+.btn-outline:hover {
+    background: var(--brand-soft);
+
+    border-color: #dec9cc;
+}
+
+
+.btn.full {
+    width: 100%;
+}
+
+
+.center {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* =====================================================
+   FORMS
+===================================================== */
+
+.field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+}
+
+
+.field label {
+    color: #55585c;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+
+.field input,
+.field select,
+.field textarea {
+    width: 100%;
+
+    padding: 12px;
+
+    border:
+        1px solid
+        var(--border);
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    color: var(--text);
+
+    outline: none;
+
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease,
+        background 0.15s ease;
+}
+
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    border-color: #b86b74;
+
+    box-shadow:
+        0 0 0 3px
+        rgba(133, 8, 23, 0.08);
+}
+
+
+.field textarea {
+    min-height: 90px;
+
+    resize: vertical;
+}
+
+
+.form-grid {
+    display: grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    gap: 15px;
+}
+
+
+.top-space {
+    margin-top: 15px;
+}
+
+
+/* =====================================================
+   SELECTION
+===================================================== */
+
+::selection {
+    background: #e7c8cc;
+
+    color: var(--brand-deep);
+}
+
+
+/* =====================================================
+   SCROLLBAR
+===================================================== */
+
+* {
+    scrollbar-width: thin;
+
+    scrollbar-color:
+        #c8b9bb
+        transparent;
+}
+
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+
+*::-webkit-scrollbar-thumb {
+    background: #c8b9bb;
+
+    border-radius: 100px;
+}
+
+
+*::-webkit-scrollbar-thumb:hover {
+    background: #aa9699;
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+.toast {
+    position: fixed;
+
+    right: 25px;
+    bottom: 25px;
+
+    background: var(--brand-dark);
+    color: #ffffff;
+
+    padding: 13px 18px;
+
+    border:
+        1px solid
+        rgba(255, 255, 255, 0.08);
+
+    border-radius: 9px;
+
+    box-shadow:
+        0 15px 35px
+        rgba(67, 3, 10, 0.24);
+
+    z-index: 5000;
+
+    opacity: 0;
+
+    transform:
+        translateY(100px);
+
+    pointer-events: none;
+
+    transition:
+        opacity 0.25s,
+        transform 0.25s;
+}
+
+
+.toast.show {
+    opacity: 1;
+
+    transform:
+        translateY(0);
+}
