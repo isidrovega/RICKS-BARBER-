@@ -601,86 +601,115 @@ function parseBirthday(value) {
    CSV CON PAPA PARSE
 ========================================== */
 
+
 function parseCSV(text) {
     const source = String(text ?? "")
-        .replace(/^\uFEFF/, "");
+        .replace(/^\uFEFF/, "")
+        .replace(/\u00A0/g, " ");
 
     if (!source.trim()) {
-        throw new Error(
-            "El archivo CSV está vacío."
-        );
+        throw new Error("El archivo CSV está vacío.");
     }
 
     if (!window.Papa) {
         throw new Error(
-            "No se pudo cargar Papa Parse. " +
-            "Comprueba tu conexión a Internet."
+            "No se pudo cargar Papa Parse."
         );
     }
 
-    const result = window.Papa.parse(source, {
-        header: true,
-        skipEmptyLines: "greedy",
-        delimiter: "",
-        quoteChar: '"',
-        escapeChar: '"',
-        transformHeader: header =>
-            String(header)
-                .replace(/^\uFEFF/, "")
-                .trim()
-    });
+    const normalizeHeader = value =>
+        String(value ?? "")
+            .replace(/^\uFEFF/, "")
+            .replace(/[\u200B-\u200D\uFEFF]/g, "")
+            .trim()
+            .replace(/\s+/g, " ");
 
-    const headers = result.meta.fields || [];
+    const delimiters = [",", ";", "\t", "|"];
+    let best = null;
+
+    for (const delimiter of delimiters) {
+        const result = window.Papa.parse(source, {
+            header: false,
+            delimiter,
+            skipEmptyLines: "greedy",
+            quoteChar: '"',
+            escapeChar: '"'
+        });
+
+        const headerIndex = result.data.findIndex(row => {
+            const headers = row.map(normalizeHeader);
+
+            return (
+                headers.includes("Name") &&
+                headers.includes("Phone number")
+            );
+        });
+
+        if (headerIndex !== -1) {
+            best = {
+                result,
+                headerIndex,
+                delimiter
+            };
+            break;
+        }
+    }
+
+    if (!best) {
+        const sample = window.Papa.parse(source, {
+            header: false,
+            delimiter: "",
+            preview: 3
+        });
+
+        const detected = sample.data
+            .slice(0, 2)
+            .map(row => row.join(" | "))
+            .join("\n");
+
+        throw new Error(
+            "No se encontraron los encabezados de Digital Strategies.\n\n" +
+            "Primeras filas detectadas:\n" +
+            detected.slice(0, 500)
+        );
+    }
+
+    const { result, headerIndex } = best;
+
+    const headers = result.data[headerIndex]
+        .map(normalizeHeader);
 
     for (const column of REQUIRED_COLUMNS) {
         if (!headers.includes(column)) {
             throw new Error(
-                `Falta la columna obligatoria: ${column}`
+                `Falta la columna: ${column}`
             );
         }
     }
 
-    if (result.errors.length) {
-        const error = result.errors[0];
+    const rows = result.data.slice(headerIndex + 1);
 
-        const rowNumber =
-            Number.isInteger(error.row)
-                ? error.row + 2
-                : "desconocida";
-
+    if (!rows.length) {
         throw new Error(
-            `Error leyendo CSV, fila ${rowNumber}: ` +
-            error.message
+            "El CSV no contiene registros de clientes."
         );
     }
 
-    if (!result.data.length) {
-        throw new Error(
-            "El CSV no contiene clientes."
-        );
-    }
-
-    return result.data.map((row, index) => {
-        if (Array.isArray(row.__parsed_extra)) {
-            throw new Error(
-                `La fila ${index + 2} tiene ` +
-                "más columnas de las esperadas."
-            );
-        }
-
-        const cleanRow = {
-            _rowNumber: index + 2
+    return rows.map((values, index) => {
+        const row = {
+            _rowNumber: headerIndex + index + 2
         };
 
-        for (const header of headers) {
-            cleanRow[header] = String(
-                row[header] ?? ""
+        headers.forEach((header, columnIndex) => {
+            row[header] = String(
+                values[columnIndex] ?? ""
             ).trim();
-        }
+        });
 
-        return cleanRow;
+        return row;
     });
 }
+
 
 /* ==========================================
    HISTORIAL ANTIGUO
