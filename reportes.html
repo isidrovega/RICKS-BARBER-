@@ -369,10 +369,15 @@
 ></div>
 
 
-<script
-    type="module"
-    src="js/reports.js"
-></script>
+<script type="module">
+    import { requireAdmin } from "./js/auth.js";
+
+    const user = await requireAdmin();
+
+    if (user) {
+        await import("./js/reports.js");
+    }
+</script>
 
 </body>
 </html>

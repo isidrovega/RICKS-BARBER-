@@ -1,0 +1,954 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Importar clientes | Rick's Barber Shop</title>
+
+<style>
+:root {
+    --brand: #850817;
+    --background: #f4f5f5;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--background);
+    color: #202124;
+    font-family: Arial, sans-serif;
+}
+
+main {
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 0 18px;
+}
+
+h1 {
+    color: var(--brand);
+}
+
+.panel {
+    background: white;
+    padding: 24px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 20px #0000000b;
+}
+
+input[type="file"] {
+    display: block;
+    margin: 18px 0;
+    max-width: 100%;
+}
+
+button {
+    padding: 12px 18px;
+    background: var(--brand);
+    border: 0;
+    border-radius: 8px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+}
+
+.secondary {
+    background: #414650;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+}
+
+.stat {
+    padding: 15px;
+    background: #f8ecee;
+    border-radius: 10px;
+}
+
+.stat strong {
+    display: block;
+    font-size: 26px;
+    margin-top: 5px;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 760px;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #e5e5e5;
+    text-align: left;
+}
+
+th {
+    background: #f8ecee;
+}
+
+.status {
+    font-weight: bold;
+}
+
+.new {
+    color: #177245;
+}
+
+.existing {
+    color: #2456a5;
+}
+
+.skipped {
+    color: #a05c00;
+}
+
+.error {
+    color: #a31c2b;
+}
+
+#message {
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+small {
+    color: #666;
+}
+
+a {
+    color: var(--brand);
+}
+</style>
+</head>
+
+<body>
+<main>
+    <p><a href="./fidelidad.html">← Volver a Fidelidad</a></p>
+
+    <h1>Importar clientes antiguos</h1>
+
+    <section class="panel">
+        <h2>1. Seleccionar archivo CSV</h2>
+
+        <p>
+            Importa los clientes de Digital Strategies
+            sin eliminar los clientes actuales de Firebase.
+        </p>
+
+        <input
+            id="csvFile"
+            type="file"
+            accept=".csv,text/csv"
+        >
+
+        <div class="actions">
+            <button id="previewButton" disabled>
+                Analizar archivo
+            </button>
+
+            <button
+                id="importButton"
+                disabled
+                class="secondary"
+            >
+                Confirmar importación
+            </button>
+        </div>
+
+        <p id="message">Verificando administrador...</p>
+    </section>
+
+    <section class="panel">
+        <h2>2. Vista previa</h2>
+
+        <div id="stats" class="stats"></div>
+
+        <p>
+            <small>
+                Los registros ambiguos o sin teléfono válido
+                se omitirán. Las recompensas antiguas se
+                conservarán como datos históricos.
+            </small>
+        </p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fila</th>
+                        <th>Cliente</th>
+                        <th>Teléfono</th>
+                        <th>Visitas antiguas</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+
+                <tbody id="previewTable">
+                    <tr>
+                        <td colspan="5">
+                            Selecciona un archivo para comenzar.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+
+<script type="module">
+import { db } from "./js/firebase.js";
+import { requireAdmin } from "./js/auth.js";
+
+import {
+    collection,
+    getDocs,
+    doc,
+    runTransaction,
+    serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+const fileInput =
+    document.getElementById("csvFile");
+
+const previewButton =
+    document.getElementById("previewButton");
+
+const importButton =
+    document.getElementById("importButton");
+
+const message =
+    document.getElementById("message");
+
+const stats =
+    document.getElementById("stats");
+
+const previewTable =
+    document.getElementById("previewTable");
+
+let previewRows = [];
+let authorized = false;
+let busy = false;
+
+const REQUIRED_COLUMNS = [
+    "Name",
+    "Phone number",
+    "Total visits",
+    "Stamps count",
+    "Rewards unused",
+    "Rewards total"
+];
+
+function escapeHTML(value) {
+    const element = document.createElement("div");
+    element.textContent = String(value ?? "");
+    return element.innerHTML;
+}
+
+function setMessage(value, isError = false) {
+    message.textContent = value;
+    message.className = isError ? "error" : "";
+}
+
+function setBusy(value) {
+    busy = value;
+    fileInput.disabled = value;
+    previewButton.disabled =
+        value || !authorized || !fileInput.files.length;
+    importButton.disabled =
+        value ||
+        !authorized ||
+        !previewRows.some(
+            row => row.action === "new" ||
+                   row.action === "existing"
+        );
+}
+
+function normalizePhone(value) {
+    let digits = String(value ?? "").replace(/\D/g, "");
+
+    if (digits.length === 13 && digits.startsWith("521")) {
+        digits = digits.slice(3);
+    } else if (
+        digits.length === 12 &&
+        digits.startsWith("52")
+    ) {
+        digits = digits.slice(2);
+    } else if (
+        digits.length === 11 &&
+        digits.startsWith("1")
+    ) {
+        digits = digits.slice(1);
+    }
+
+    return digits.length === 10 ? digits : "";
+}
+
+function parseNonNegativeInteger(value) {
+    const text = String(value ?? "").trim();
+
+    if (!/^\d+$/.test(text)) {
+        return null;
+    }
+
+    const number = Number(text);
+
+    return Number.isSafeInteger(number)
+        ? number
+        : null;
+}
+
+function parseNonNegativeMoney(value) {
+    const text = String(value ?? "")
+        .trim()
+        .replace(/[$,\s]/g, "");
+
+    if (!/^\d+(\.\d+)?$/.test(text)) {
+        return null;
+    }
+
+    const number = Number(text);
+
+    return Number.isFinite(number)
+        ? number
+        : null;
+}
+
+function parseBirthday(value) {
+    const text = String(value ?? "").trim();
+
+    if (!text) {
+        return "";
+    }
+
+    let year;
+    let month;
+    let day;
+
+    if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(text)) {
+        [year, month, day] = text.split("-").map(Number);
+    } else if (/^\d{1,2}\.\d{1,2}\.\d{4}$/.test(text)) {
+        [day, month, year] = text.split(".").map(Number);
+    } else {
+        return "";
+    }
+
+    const date = new Date(year, month - 1, day);
+
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ) {
+        return "";
+    }
+
+    return [
+        String(year).padStart(4, "0"),
+        String(month).padStart(2, "0"),
+        String(day).padStart(2, "0")
+    ].join("-");
+}
+
+function parseCSV(text) {
+    const source = String(text)
+        .replace(/^\uFEFF/, "");
+
+    const firstLine =
+        source.split(/\r\n|\n|\r/, 1)[0] || "";
+
+    const delimiter =
+        firstLine.split(";").length >
+        firstLine.split(",").length
+            ? ";"
+            : ",";
+
+    const rows = [];
+    let row = [];
+    let field = "";
+    let quoted = false;
+
+    for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+        const next = source[i + 1];
+
+        if (char === '"') {
+            if (quoted && next === '"') {
+                field += '"';
+                i++;
+            } else {
+                quoted = !quoted;
+            }
+
+            continue;
+        }
+
+        if (!quoted && char === delimiter) {
+            row.push(field);
+            field = "";
+            continue;
+        }
+
+        if (
+            !quoted &&
+            (char === "\n" || char === "\r")
+        ) {
+            if (char === "\r" && next === "\n") {
+                i++;
+            }
+
+            row.push(field);
+
+            if (row.some(value => value.trim())) {
+                rows.push(row);
+            }
+
+            row = [];
+            field = "";
+            continue;
+        }
+
+        field += char;
+    }
+
+    if (quoted) {
+        throw new Error(
+            "El CSV contiene comillas sin cerrar."
+        );
+    }
+
+    row.push(field);
+
+    if (row.some(value => value.trim())) {
+        rows.push(row);
+    }
+
+    if (rows.length < 2) {
+        throw new Error(
+            "El archivo no contiene registros."
+        );
+    }
+
+    const headers = rows.shift().map(
+        value => value.trim()
+    );
+
+    for (const column of REQUIRED_COLUMNS) {
+        if (!headers.includes(column)) {
+            throw new Error(
+                `Falta la columna obligatoria: ${column}`
+            );
+        }
+    }
+
+    return rows.map((values, index) => {
+        const result = {
+            _rowNumber: index + 2
+        };
+
+        headers.forEach((header, columnIndex) => {
+            result[header] =
+                values[columnIndex]?.trim() || "";
+        });
+
+        return result;
+    });
+}
+
+function buildLegacyData(row) {
+    return {
+        source: "Digital Strategies",
+        importedAt: serverTimestamp(),
+        originalName: row["Name"] || "",
+        originalPhone: row["Phone number"] || "",
+        originalCreatedAt: row["Created at"] || "",
+        totalVisits: parseNonNegativeInteger(
+            row["Total visits"]
+        ),
+        stampsCount: parseNonNegativeInteger(
+            row["Stamps count"]
+        ),
+        rewardsUnused: parseNonNegativeInteger(
+            row["Rewards unused"]
+        ),
+        rewardsTotal: parseNonNegativeInteger(
+            row["Rewards total"]
+        ),
+        ltv: parseNonNegativeMoney(row["LTV"]),
+        cardStatus: row["Card status"] || "",
+        cardSerialNumber:
+            row["Card serial number"] || "",
+        cardDevice: row["Card device"] || "",
+        utmSource: row["UTM source"] || "",
+        acquisitionParams:
+            row["Acquisition params"] || "",
+        customFields: row["Custom fields"] || "",
+        rewardsInterpretation: "unverified"
+    };
+}
+
+function createPhoneIndex(customers) {
+    const index = new Map();
+
+    for (const customer of customers) {
+        const phone = normalizePhone(customer.phone);
+
+        if (!phone) {
+            continue;
+        }
+
+        if (!index.has(phone)) {
+            index.set(phone, []);
+        }
+
+        index.get(phone).push(customer);
+    }
+
+    return index;
+}
+
+function renderPreview() {
+    const counts = {
+        new: 0,
+        existing: 0,
+        skipped: 0
+    };
+
+    previewRows.forEach(row => {
+        counts[row.action]++;
+    });
+
+    stats.innerHTML = `
+        <div class="stat">
+            Registros
+            <strong>${previewRows.length}</strong>
+        </div>
+
+        <div class="stat">
+            Clientes nuevos
+            <strong>${counts.new}</strong>
+        </div>
+
+        <div class="stat">
+            Coincidencias
+            <strong>${counts.existing}</strong>
+        </div>
+
+        <div class="stat">
+            Por revisar
+            <strong>${counts.skipped}</strong>
+        </div>
+    `;
+
+    previewTable.innerHTML = previewRows.map(item => {
+        const labels = {
+            new: "Crear cliente",
+            existing: "Conservar cliente y añadir historial",
+            skipped: item.reason
+        };
+
+        return `
+            <tr>
+                <td>${item.row._rowNumber}</td>
+
+                <td>
+                    ${escapeHTML(item.row["Name"])}
+                </td>
+
+                <td>
+                    ${escapeHTML(item.phone)}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        item.row["Total visits"]
+                    )}
+                </td>
+
+                <td class="status ${item.action}">
+                    ${escapeHTML(labels[item.action])}
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+async function analyzeFile() {
+    if (busy || !authorized) {
+        return;
+    }
+
+    const file = fileInput.files[0];
+
+    if (!file) {
+        return;
+    }
+
+    setBusy(true);
+    previewRows = [];
+    renderPreview();
+
+    try {
+        setMessage(
+            "Leyendo CSV y consultando clientes de Firebase..."
+        );
+
+        const csvText = await file.text();
+        const rows = parseCSV(csvText);
+
+        const snapshot = await getDocs(
+            collection(db, "customers")
+        );
+
+        const customers = snapshot.docs.map(item => ({
+            ...item.data(),
+            id: item.id
+        }));
+
+        const phoneIndex =
+            createPhoneIndex(customers);
+
+        const sourceCounts = new Map();
+
+        for (const row of rows) {
+            const phone = normalizePhone(
+                row["Phone number"]
+            );
+
+            if (phone) {
+                sourceCounts.set(
+                    phone,
+                    (sourceCounts.get(phone) || 0) + 1
+                );
+            }
+        }
+
+        previewRows = rows.map(row => {
+            const phone = normalizePhone(
+                row["Phone number"]
+            );
+
+            const matches =
+                phoneIndex.get(phone) || [];
+
+            const visits = parseNonNegativeInteger(
+                row["Total visits"]
+            );
+
+            let action = "new";
+            let reason = "";
+            let customerId = "";
+
+            if (!phone) {
+                action = "skipped";
+                reason = "Teléfono inválido";
+            } else if (
+                sourceCounts.get(phone) > 1
+            ) {
+                action = "skipped";
+                reason = "Teléfono repetido en CSV";
+            } else if (matches.length > 1) {
+                action = "skipped";
+                reason = "Varios clientes en Firebase";
+            } else if (visits === null) {
+                action = "skipped";
+                reason = "Visitas inválidas";
+            } else if (matches.length === 1) {
+                action = "existing";
+                customerId = matches[0].id;
+            }
+
+            return {
+                row,
+                phone,
+                action,
+                reason,
+                customerId
+            };
+        });
+
+        renderPreview();
+
+        setMessage(
+            "Análisis terminado. Revisa los resultados antes de importar. " +
+            "Los clientes existentes conservarán sus visitas actuales; " +
+            "el historial anterior se guardará por separado."
+        );
+
+    } catch (error) {
+        console.error(error);
+
+        previewRows = [];
+        renderPreview();
+
+        setMessage(error.message, true);
+    } finally {
+        setBusy(false);
+    }
+}
+
+async function importCustomer(item) {
+    const row = item.row;
+
+    const legacyData = buildLegacyData(row);
+
+    const targetId = item.action === "existing"
+        ? item.customerId
+        : `legacy_${item.phone}`;
+
+    const customerRef = doc(
+        db,
+        "customers",
+        targetId
+    );
+
+    await runTransaction(db, async transaction => {
+        const snapshot =
+            await transaction.get(customerRef);
+
+        if (item.action === "existing") {
+            if (!snapshot.exists()) {
+                throw new Error(
+                    "El cliente existente ya no se encuentra."
+                );
+            }
+
+            const current = snapshot.data();
+
+            if (
+                normalizePhone(current.phone) !==
+                item.phone
+            ) {
+                throw new Error(
+                    "El teléfono del cliente cambió."
+                );
+            }
+
+            if (current.legacyLoyalty) {
+                throw new Error(
+                    "El cliente ya tiene historial anterior. " +
+                    "Requiere revisión manual."
+                );
+            }
+
+            const updates = {
+                legacyLoyalty: legacyData,
+                updatedAt: serverTimestamp()
+            };
+
+            if (!current.email && row["Email"]) {
+                updates.email = row["Email"];
+            }
+
+            const birthday = parseBirthday(
+                row["Date of birthday"]
+            );
+
+            if (!current.birthday && birthday) {
+                updates.birthday = birthday;
+            }
+
+            transaction.update(
+                customerRef,
+                updates
+            );
+
+            return;
+        }
+
+        if (snapshot.exists()) {
+            throw new Error(
+                "El cliente ya existe con ese identificador."
+            );
+        }
+
+        const visits = parseNonNegativeInteger(
+            row["Total visits"]
+        );
+
+        if (visits === null) {
+            throw new Error(
+                "El número de visitas no es válido."
+            );
+        }
+
+        transaction.set(customerRef, {
+            name: row["Name"].trim(),
+            phone: item.phone,
+            email: row["Email"] || "",
+            birthday: parseBirthday(
+                row["Date of birthday"]
+            ),
+            visits,
+            legacyLoyalty: legacyData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+        });
+    });
+}
+
+async function confirmImport() {
+    if (busy || !authorized) {
+        return;
+    }
+
+    const candidates = previewRows.filter(
+        item =>
+            item.action === "new" ||
+            item.action === "existing"
+    );
+
+    if (!candidates.length) {
+        return;
+    }
+
+    const accepted = window.confirm(
+        `Se procesarán ${candidates.length} clientes.\n\n` +
+        "Los clientes existentes no perderán sus visitas.\n" +
+        "Las recompensas antiguas quedarán como historial.\n\n" +
+        "¿Confirmas la importación?"
+    );
+
+    if (!accepted) {
+        return;
+    }
+
+    setBusy(true);
+
+    let imported = 0;
+    let failed = 0;
+    const errors = [];
+
+    try {
+        for (const item of candidates) {
+            try {
+                await importCustomer(item);
+                imported++;
+            } catch (error) {
+                failed++;
+
+                errors.push(
+                    `Fila ${item.row._rowNumber}: ` +
+                    error.message
+                );
+
+                console.error(
+                    "Error importando cliente:",
+                    item.row._rowNumber,
+                    error
+                );
+            }
+
+            setMessage(
+                `Procesados: ${imported + failed} de ` +
+                `${candidates.length}\n` +
+                `Correctos: ${imported}\n` +
+                `Con error: ${failed}`
+            );
+        }
+
+        setMessage(
+            `Importación terminada.\n` +
+            `Correctos: ${imported}\n` +
+            `Con error: ${failed}\n\n` +
+            (
+                errors.length
+                    ? errors.join("\n")
+                    : "Sin errores."
+            )
+        );
+
+        // La vista previa ya no es válida
+        // después de modificar Firestore.
+        previewRows = [];
+        renderPreview();
+
+    } finally {
+        setBusy(false);
+    }
+}
+
+fileInput.addEventListener("change", () => {
+    previewRows = [];
+    renderPreview();
+
+    previewButton.disabled =
+        !authorized || !fileInput.files.length;
+
+    importButton.disabled = true;
+
+    setMessage(
+        fileInput.files.length
+            ? "Archivo seleccionado. Haz clic en Analizar archivo."
+            : "Selecciona un archivo CSV."
+    );
+});
+
+previewButton.addEventListener(
+    "click",
+    analyzeFile
+);
+
+importButton.addEventListener(
+    "click",
+    confirmImport
+);
+
+async function initialize() {
+    try {
+        const user = await requireAdmin();
+
+        if (!user) {
+            setMessage(
+                "Necesitas iniciar sesión como administrador.",
+                true
+            );
+            return;
+        }
+
+        authorized = true;
+
+        setMessage(
+            "Administrador verificado. Selecciona el CSV."
+        );
+
+        previewButton.disabled =
+            !fileInput.files.length;
+
+    } catch (error) {
+        console.error(error);
+
+        setMessage(
+            "No se pudo verificar el acceso de administrador.",
+            true
+        );
+    }
+}
+
+initialize();
+</script>
+</body>
+</html>

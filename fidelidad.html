@@ -502,10 +502,15 @@
 ></div>
 
 
-<script
-    type="module"
-    src="js/loyalty.js"
-></script>
+<script type="module">
+    import { requireAdmin } from "./js/auth.js";
+
+    const user = await requireAdmin();
+
+    if (user) {
+        await import("./js/loyalty.js");
+    }
+</script>
 
 </body>
 </html>

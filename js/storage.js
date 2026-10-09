@@ -375,55 +375,33 @@ export async function initializeDatabase() {
    GET CUSTOMERS
 ========================================================= */
 
+
 export async function getCustomers() {
-
     try {
-
-        await seedCustomersIfEmpty();
-
-
-        const snapshot =
-            await getDocs(
-                collection(
-                    db,
-                    CUSTOMERS_COLLECTION
-                )
-            );
-
-
-        return snapshot.docs.map(
-            snapshotDoc => {
-
-                const data =
-                    snapshotDoc.data();
-
-
-                return normalizeCustomer({
-
-                    ...data,
-
-                    id:
-                        data.id ||
-                        snapshotDoc.id
-
-                });
-
-            }
+        const customersRef = collection(
+            db,
+            CUSTOMERS_COLLECTION
         );
 
-    } catch (error) {
+        const snapshot = await getDocs(customersRef);
 
+        return snapshot.docs.map(customerDoc => {
+            return normalizeCustomer({
+                ...customerDoc.data(),
+                id: customerDoc.id
+            });
+        });
+
+    } catch (error) {
         console.error(
-            "Error obteniendo clientes:",
+            "Error cargando clientes desde Firestore:",
             error
         );
 
-
         throw error;
-
     }
-
 }
+
 
 
 /* =========================================================
@@ -592,54 +570,31 @@ export async function saveCustomers(
 ========================================================= */
 
 export async function getAppointments() {
-
     try {
-
-        await seedAppointmentsIfEmpty();
-
-
-        const snapshot =
-            await getDocs(
-                collection(
-                    db,
-                    APPOINTMENTS_COLLECTION
-                )
-            );
-
-
-        return snapshot.docs.map(
-            snapshotDoc => {
-
-                const data =
-                    snapshotDoc.data();
-
-
-                return normalizeAppointment({
-
-                    ...data,
-
-                    id:
-                        data.id ||
-                        snapshotDoc.id
-
-                });
-
-            }
+        const appointmentsRef = collection(
+            db,
+            APPOINTMENTS_COLLECTION
         );
 
-    } catch (error) {
+        const snapshot = await getDocs(appointmentsRef);
 
+        return snapshot.docs.map(appointmentDoc => {
+            return normalizeAppointment({
+                ...appointmentDoc.data(),
+                id: appointmentDoc.id
+            });
+        });
+
+    } catch (error) {
         console.error(
-            "Error obteniendo citas:",
+            "Error cargando citas desde Firestore:",
             error
         );
 
-
         throw error;
-
     }
-
 }
+
 
 
 /* =========================================================

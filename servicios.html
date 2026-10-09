@@ -394,10 +394,15 @@
 ></div>
 
 
-<script
-    type="module"
-    src="js/services.js"
-></script>
+<script type="module">
+    import { requireAdmin } from "./js/auth.js";
+
+    const user = await requireAdmin();
+
+    if (user) {
+        await import("./js/services.js");
+    }
+</script>
 
 </body>
 </html>

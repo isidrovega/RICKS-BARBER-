@@ -1,317 +1,370 @@
+
+import { db } from "./firebase.js";
+
 import {
     getCustomers,
-    saveCustomers,
     normalizePhone
 } from "./storage.js";
 
+import {
+    doc,
+    runTransaction
+} from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 const VISITS_REQUIRED = 5;
 
+let customers = [];
 let currentFilter = "all";
 let searchTerm = "";
 let selectedCustomerId = null;
 let toastTimer = null;
+let operationInProgress = false;
 
+const elements = {
+    summary: document.getElementById("loyaltySummary"),
+    grid: document.getElementById("loyaltyGrid"),
+    search: document.getElementById("loyaltySearch"),
+    count: document.getElementById("loyaltyResultCount"),
 
-const loyaltySummary =
-    document.getElementById("loyaltySummary");
+    loyaltyModal: document.getElementById("loyaltyModal"),
+    visitModal: document.getElementById("visitModal"),
 
-const loyaltyGrid =
-    document.getElementById("loyaltyGrid");
+    avatar: document.getElementById("loyaltyModalAvatar"),
+    name: document.getElementById("loyaltyModalName"),
+    phone: document.getElementById("loyaltyModalPhone"),
+    status: document.getElementById("loyaltyRewardStatus"),
+    stamps: document.getElementById("loyaltyModalStamps"),
+    progress: document.getElementById("loyaltyModalProgress"),
+    description: document.getElementById("loyaltyModalDescription"),
+    visits: document.getElementById("loyaltyModalVisits"),
+    earned: document.getElementById("loyaltyModalEarned"),
+    redeemed: document.getElementById("loyaltyModalRedeemed"),
 
-const loyaltySearch =
-    document.getElementById("loyaltySearch");
+    redeemButton: document.getElementById("redeemRewardButton"),
+    addVisitButton: document.getElementById("addVisitModalButton"),
+    registerButton: document.getElementById("registerVisitButton"),
 
-const loyaltyResultCount =
-    document.getElementById("loyaltyResultCount");
+    visitSearch: document.getElementById("visitCustomerSearch"),
+    visitResults: document.getElementById("visitCustomerResults"),
 
-const loyaltyModal =
-    document.getElementById("loyaltyModal");
+    closeLoyalty: document.getElementById("closeLoyaltyModal"),
+    closeVisit: document.getElementById("closeVisitModal"),
+    cancelVisit: document.getElementById("cancelVisitButton"),
+    toast: document.getElementById("toast")
+};
 
-const visitModal =
-    document.getElementById("visitModal");
+/* ==========================================
+   UTILIDADES
+========================================== */
 
-const loyaltyModalAvatar =
-    document.getElementById("loyaltyModalAvatar");
-
-const loyaltyModalName =
-    document.getElementById("loyaltyModalName");
-
-const loyaltyModalPhone =
-    document.getElementById("loyaltyModalPhone");
-
-const loyaltyRewardStatus =
-    document.getElementById("loyaltyRewardStatus");
-
-const loyaltyModalStamps =
-    document.getElementById("loyaltyModalStamps");
-
-const loyaltyModalProgress =
-    document.getElementById("loyaltyModalProgress");
-
-const loyaltyModalDescription =
-    document.getElementById("loyaltyModalDescription");
-
-const loyaltyModalVisits =
-    document.getElementById("loyaltyModalVisits");
-
-const loyaltyModalEarned =
-    document.getElementById("loyaltyModalEarned");
-
-const loyaltyModalRedeemed =
-    document.getElementById("loyaltyModalRedeemed");
-
-const redeemRewardButton =
-    document.getElementById("redeemRewardButton");
-
-const addVisitModalButton =
-    document.getElementById("addVisitModalButton");
-
-const registerVisitButton =
-    document.getElementById("registerVisitButton");
-
-const visitCustomerSearch =
-    document.getElementById("visitCustomerSearch");
-
-const visitCustomerResults =
-    document.getElementById("visitCustomerResults");
-
-
-function initialize() {
-    migrateCustomers();
-    configureEvents();
-    renderAll();
+function escapeHTML(value) {
+    const element = document.createElement("div");
+    element.textContent = String(value ?? "");
+    return element.innerHTML;
 }
 
+function getInitials(name) {
+    return String(name || "")
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(word => word.charAt(0).toUpperCase())
+        .join("") || "?";
+}
 
-function migrateCustomers() {
-    const customers =
-        getCustomers();
+function showToast(message) {
+    if (!elements.toast) {
+        console.log(message);
+        return;
+    }
 
-    let changed = false;
+    elements.toast.textContent = message;
+    elements.toast.classList.add("show");
 
-    const migrated =
-        customers.map(customer => {
-            const next = {
-                ...customer
-            };
+    clearTimeout(toastTimer);
 
-            if (
-                typeof next.rewardsRedeemed !==
-                "number"
-            ) {
-                next.rewardsRedeemed = 0;
-                changed = true;
-            }
+    toastTimer = setTimeout(() => {
+        elements.toast.classList.remove("show");
+    }, 3000);
+}
 
-            return next;
-        });
+function getCustomerById(id) {
+    return customers.find(customer => customer.id === id);
+}
 
-    if (changed) {
-        saveCustomers(migrated);
+function normalizeCount(value) {
+    const number = Number(value);
+
+    return Number.isFinite(number)
+        ? Math.max(0, Math.floor(number))
+        : 0;
+}
+
+/* ==========================================
+   CÁLCULO DE FIDELIDAD
+========================================== */
+
+function getLoyaltyData(customer) {
+    const visits = normalizeCount(customer.visits);
+    const redeemed = normalizeCount(customer.rewardsRedeemed);
+
+    const totalRewardsEarned = Math.floor(
+        visits / VISITS_REQUIRED
+    );
+
+    const availableRewards = Math.max(
+        0,
+        totalRewardsEarned - redeemed
+    );
+
+    let progress = visits % VISITS_REQUIRED;
+
+    if (availableRewards > 0 && progress === 0) {
+        progress = VISITS_REQUIRED;
+    }
+
+    const remaining = progress === VISITS_REQUIRED
+        ? 0
+        : VISITS_REQUIRED - progress;
+
+    return {
+        visits,
+        redeemed,
+        totalRewardsEarned,
+        availableRewards,
+        progress,
+        remaining
+    };
+}
+
+function renderStamps(progress, large = false) {
+    const className = large
+        ? "loyalty-stamp"
+        : "simple-loyalty-stamp";
+
+    return Array.from(
+        { length: VISITS_REQUIRED },
+        (_, index) => `
+            <span class="${className} ${
+                index < progress ? "active" : ""
+            }">✂</span>
+        `
+    ).join("");
+}
+
+/* ==========================================
+   FIRESTORE
+========================================== */
+
+async function refreshCustomers() {
+    const result = await getCustomers();
+
+    customers = Array.isArray(result) ? result : [];
+
+    renderAll();
+
+    if (selectedCustomerId) {
+        const selected = getCustomerById(selectedCustomerId);
+
+        if (selected) {
+            renderCustomerModal(selected);
+        } else {
+            closeLoyaltyModal();
+        }
     }
 }
 
+/*
+ * Las visitas se incrementan en una transacción.
+ * Así evitamos perder incrementos si dos
+ * administradores actualizan al mismo cliente.
+ */
+async function registerCustomerVisit(customerId) {
+    if (operationInProgress) {
+        return false;
+    }
 
-function configureEvents() {
-    loyaltySearch.addEventListener(
-        "input",
-        event => {
-            searchTerm =
-                event.target.value
-                    .trim()
-                    .toLowerCase();
+    const customer = getCustomerById(customerId);
 
-            renderCustomers();
-        }
-    );
+    if (!customer) {
+        showToast("No se encontró el cliente.");
+        return false;
+    }
 
+    operationInProgress = true;
+    updateOperationButtons();
 
-    document
-        .querySelectorAll(
-            ".module-filters .filter"
-        )
-        .forEach(button => {
-            button.addEventListener(
-                "click",
-                () => {
-                    document
-                        .querySelectorAll(
-                            ".module-filters .filter"
-                        )
-                        .forEach(item => {
-                            item.classList.remove(
-                                "active"
-                            );
-                        });
+    try {
+        const customerRef = doc(
+            db,
+            "customers",
+            customerId
+        );
 
-                    button.classList.add(
-                        "active"
-                    );
+        await runTransaction(db, async transaction => {
+            const snapshot = await transaction.get(customerRef);
 
-                    currentFilter =
-                        button.dataset.filter;
+            if (!snapshot.exists()) {
+                throw new Error("El cliente ya no existe.");
+            }
 
-                    renderCustomers();
-                }
+            const currentVisits = normalizeCount(
+                snapshot.data().visits
             );
+
+            transaction.update(customerRef, {
+                visits: currentVisits + 1,
+                updatedAt: new Date().toISOString()
+            });
         });
 
+        await refreshCustomers();
 
-    loyaltyGrid.addEventListener(
-        "click",
-        handleGridAction
-    );
-
-
-    registerVisitButton.addEventListener(
-        "click",
-        openVisitModal
-    );
-
-
-    document
-        .getElementById(
-            "closeLoyaltyModal"
-        )
-        .addEventListener(
-            "click",
-            closeLoyaltyModal
+        showToast(
+            `Visita registrada para ${customer.name}.`
         );
 
+        return true;
 
-    document
-        .getElementById(
-            "closeVisitModal"
-        )
-        .addEventListener(
-            "click",
-            closeVisitModal
+    } catch (error) {
+        console.error("Error registrando visita:", error);
+
+        showToast(
+            "No fue posible registrar la visita."
         );
 
+        return false;
 
-    document
-        .getElementById(
-            "cancelVisitButton"
-        )
-        .addEventListener(
-            "click",
-            closeVisitModal
-        );
-
-
-    addVisitModalButton.addEventListener(
-        "click",
-        registerSelectedCustomerVisit
-    );
-
-
-    redeemRewardButton.addEventListener(
-        "click",
-        redeemSelectedReward
-    );
-
-
-    visitCustomerSearch.addEventListener(
-        "input",
-        renderVisitCustomerResults
-    );
-
-
-    visitCustomerResults.addEventListener(
-        "click",
-        handleVisitCustomerResult
-    );
-
-
-    loyaltyModal.addEventListener(
-        "click",
-        event => {
-            if (event.target === loyaltyModal) {
-                closeLoyaltyModal();
-            }
-        }
-    );
-
-
-    visitModal.addEventListener(
-        "click",
-        event => {
-            if (event.target === visitModal) {
-                closeVisitModal();
-            }
-        }
-    );
-
-
-    document.addEventListener(
-        "keydown",
-        event => {
-            if (event.key !== "Escape") {
-                return;
-            }
-
-            if (
-                !visitModal.classList.contains(
-                    "hidden"
-                )
-            ) {
-                closeVisitModal();
-                return;
-            }
-
-            if (
-                !loyaltyModal.classList.contains(
-                    "hidden"
-                )
-            ) {
-                closeLoyaltyModal();
-            }
-        }
-    );
+    } finally {
+        operationInProgress = false;
+        updateOperationButtons();
+    }
 }
 
+/*
+ * El canje también es transaccional.
+ * Se vuelve a verificar el saldo dentro
+ * de Firestore antes de descontar la recompensa.
+ */
+async function redeemSelectedReward() {
+    if (!selectedCustomerId || operationInProgress) {
+        return;
+    }
 
-function renderAll() {
-    renderSummary();
-    renderCustomers();
+    const customerId = selectedCustomerId;
+
+    operationInProgress = true;
+    updateOperationButtons();
+
+    try {
+        const customerRef = doc(
+            db,
+            "customers",
+            customerId
+        );
+
+        await runTransaction(db, async transaction => {
+            const snapshot = await transaction.get(customerRef);
+
+            if (!snapshot.exists()) {
+                throw new Error("El cliente ya no existe.");
+            }
+
+            const data = snapshot.data();
+
+            const loyalty = getLoyaltyData(data);
+
+            if (loyalty.availableRewards <= 0) {
+                throw new Error(
+                    "El cliente no tiene recompensas disponibles."
+                );
+            }
+
+            transaction.update(customerRef, {
+                rewardsRedeemed: loyalty.redeemed + 1,
+                updatedAt: new Date().toISOString()
+            });
+        });
+
+        await refreshCustomers();
+
+        showToast("Recompensa canjeada correctamente.");
+
+    } catch (error) {
+        console.error("Error canjeando recompensa:", error);
+
+        showToast(
+            error.message ===
+                "El cliente no tiene recompensas disponibles."
+                ? error.message
+                : "No fue posible canjear la recompensa."
+        );
+
+        try {
+            await refreshCustomers();
+        } catch (refreshError) {
+            console.error(
+                "Error actualizando clientes:",
+                refreshError
+            );
+        }
+
+    } finally {
+        operationInProgress = false;
+        updateOperationButtons();
+    }
 }
 
+function updateOperationButtons() {
+    if (elements.addVisitButton) {
+        elements.addVisitButton.disabled = operationInProgress;
+    }
+
+    if (elements.redeemButton) {
+        const customer = selectedCustomerId
+            ? getCustomerById(selectedCustomerId)
+            : null;
+
+        elements.redeemButton.disabled =
+            operationInProgress ||
+            !customer ||
+            getLoyaltyData(customer).availableRewards <= 0;
+    }
+
+    if (elements.visitResults) {
+        elements.visitResults
+            .querySelectorAll("[data-customer-id]")
+            .forEach(button => {
+                button.disabled = operationInProgress;
+            });
+    }
+}
+
+/* ==========================================
+   ESTADÍSTICAS
+========================================== */
 
 function renderSummary() {
-    const customers =
-        getCustomers();
+    const visits = customers.reduce(
+        (total, customer) =>
+            total + normalizeCount(customer.visits),
+        0
+    );
 
-    const visits =
-        customers.reduce(
-            (total, customer) =>
-                total +
-                Number(customer.visits || 0),
-            0
-        );
+    const available = customers.reduce(
+        (total, customer) =>
+            total + getLoyaltyData(customer).availableRewards,
+        0
+    );
 
-    const available =
-        customers.reduce(
-            (total, customer) =>
-                total +
-                getLoyaltyData(
-                    customer
-                ).availableRewards,
-            0
-        );
+    const redeemed = customers.reduce(
+        (total, customer) =>
+            total + normalizeCount(customer.rewardsRedeemed),
+        0
+    );
 
-    const redeemed =
-        customers.reduce(
-            (total, customer) =>
-                total +
-                Number(
-                    customer.rewardsRedeemed ||
-                    0
-                ),
-            0
-        );
-
-    loyaltySummary.innerHTML = `
+    elements.summary.innerHTML = `
         <div class="module-summary-item">
             <strong>${customers.length}</strong>
             <span>Clientes</span>
@@ -340,66 +393,18 @@ function renderSummary() {
     `;
 }
 
-
-function renderCustomers() {
-    const customers =
-        getCustomers()
-            .filter(matchesSearch)
-            .filter(matchesFilter)
-            .sort(sortCustomers);
-
-    loyaltyResultCount.textContent =
-        `${customers.length} ${
-            customers.length === 1
-                ? "cliente"
-                : "clientes"
-        }`;
-
-    if (!customers.length) {
-        loyaltyGrid.innerHTML = `
-            <div class="module-empty-state">
-
-                <div class="module-empty-icon">
-                    ★
-                </div>
-
-                <strong>
-                    No hay resultados
-                </strong>
-
-                <p>
-                    No encontramos clientes con estos filtros.
-                </p>
-
-            </div>
-        `;
-
-        return;
-    }
-
-    loyaltyGrid.innerHTML =
-        customers
-            .map(createCustomerCard)
-            .join("");
-}
-
+/* ==========================================
+   FILTROS Y BÚSQUEDA
+========================================== */
 
 function matchesSearch(customer) {
     if (!searchTerm) {
         return true;
     }
 
-    const name =
-        String(customer.name || "")
-            .toLowerCase();
-
-    const phone =
-        normalizePhone(
-            customer.phone || ""
-        );
-
-    const searchedPhone =
-        normalizePhone(searchTerm);
+    const name = String(customer.name || "").toLowerCase();
+    const phone = normalizePhone(customer.phone);
+    const searchedPhone = normalizePhone(searchTerm);
 
     return (
         name.includes(searchTerm) ||
@@ -410,173 +415,138 @@ function matchesSearch(customer) {
     );
 }
 
-
 function matchesFilter(customer) {
-    const rewards =
-        getLoyaltyData(
-            customer
-        ).availableRewards;
+    const availableRewards =
+        getLoyaltyData(customer).availableRewards;
 
     if (currentFilter === "reward") {
-        return rewards > 0;
+        return availableRewards > 0;
     }
 
     if (currentFilter === "progress") {
-        return rewards === 0;
+        return availableRewards === 0;
     }
 
     return true;
 }
 
-
 function sortCustomers(a, b) {
-    const rewardsA =
-        getLoyaltyData(
-            a
-        ).availableRewards;
-
-    const rewardsB =
-        getLoyaltyData(
-            b
-        ).availableRewards;
+    const rewardsA = getLoyaltyData(a).availableRewards;
+    const rewardsB = getLoyaltyData(b).availableRewards;
 
     if (rewardsA !== rewardsB) {
         return rewardsB - rewardsA;
     }
 
-    return (
-        Number(b.visits || 0) -
-        Number(a.visits || 0)
-    );
+    return normalizeCount(b.visits) -
+        normalizeCount(a.visits);
 }
 
+/* ==========================================
+   TARJETAS
+========================================== */
+
+function renderCustomers() {
+    const filtered = customers
+        .filter(matchesSearch)
+        .filter(matchesFilter)
+        .sort(sortCustomers);
+
+    elements.count.textContent = `${
+        filtered.length
+    } ${
+        filtered.length === 1 ? "cliente" : "clientes"
+    }`;
+
+    if (!filtered.length) {
+        const message = customers.length
+            ? "No encontramos clientes con estos filtros."
+            : "Todavía no hay clientes registrados.";
+
+        elements.grid.innerHTML = `
+            <div class="module-empty-state">
+                <div class="module-empty-icon">★</div>
+                <strong>No hay resultados</strong>
+                <p>${message}</p>
+            </div>
+        `;
+
+        return;
+    }
+
+    elements.grid.innerHTML = filtered
+        .map(createCustomerCard)
+        .join("");
+}
 
 function createCustomerCard(customer) {
-    const loyalty =
-        getLoyaltyData(customer);
-
-    const hasReward =
-        loyalty.availableRewards > 0;
+    const loyalty = getLoyaltyData(customer);
+    const hasReward = loyalty.availableRewards > 0;
 
     return `
         <article class="unified-card">
-
             <div class="unified-card-header">
-
                 <div class="unified-card-person">
-
                     <div class="unified-card-avatar">
-                        ${escapeHTML(
-                            getInitials(
-                                customer.name
-                            )
-                        )}
+                        ${escapeHTML(getInitials(customer.name))}
                     </div>
 
                     <div class="unified-card-title">
-
-                        <h3>
-                            ${escapeHTML(
-                                customer.name
-                            )}
-                        </h3>
-
-                        <span>
-                            Cliente
-                        </span>
-
+                        <h3>${escapeHTML(customer.name)}</h3>
+                        <span>Cliente</span>
                     </div>
-
                 </div>
 
-
-                <div
-                    class="
-                        unified-status
-                        ${
-                            hasReward
-                                ? "reward"
-                                : "progress"
-                        }
-                    "
-                >
-
+                <div class="unified-status ${
+                    hasReward ? "reward" : "progress"
+                }">
                     <span></span>
-
                     ${
                         hasReward
                             ? "Recompensa"
                             : "En progreso"
                     }
-
                 </div>
-
             </div>
 
-
             <div class="unified-card-metrics">
-
                 <div>
-
-                    <span>
-                        Visitas
-                    </span>
-
-                    <strong>
-                        ${Number(
-                            customer.visits || 0
-                        )}
-                    </strong>
-
+                    <span>Visitas</span>
+                    <strong>${loyalty.visits}</strong>
                 </div>
 
-
                 <div>
-
-                    <span>
-                        Progreso
-                    </span>
-
+                    <span>Progreso</span>
                     <strong>
                         ${loyalty.progress}/${VISITS_REQUIRED}
                     </strong>
-
                 </div>
-
             </div>
 
-
             <div class="unified-card-detail">
-
-                <span>
-                    Fidelidad
-                </span>
+                <span>Fidelidad</span>
 
                 <div class="simple-loyalty-stamps">
-
-                    ${renderStamps(
-                        loyalty.progress
-                    )}
-
+                    ${renderStamps(loyalty.progress)}
                 </div>
 
                 <small>
                     ${
                         hasReward
-                            ? `${loyalty.availableRewards} recompensa disponible`
+                            ? `${loyalty.availableRewards} ${
+                                loyalty.availableRewards === 1
+                                    ? "recompensa disponible"
+                                    : "recompensas disponibles"
+                            }`
                             : `Faltan ${loyalty.remaining} visitas`
                     }
                 </small>
-
             </div>
 
-
             <div class="unified-card-footer">
-
                 <span>
                     ${escapeHTML(
-                        customer.phone ||
-                        "Sin teléfono"
+                        customer.phone || "Sin teléfono"
                     )}
                 </span>
 
@@ -584,282 +554,152 @@ function createCustomerCard(customer) {
                     type="button"
                     class="modern-edit-button"
                     data-action="view"
-                    data-id="${escapeHTML(
-                        customer.id
-                    )}"
+                    data-id="${escapeHTML(customer.id)}"
                 >
                     Ver cliente
                     <span>→</span>
                 </button>
-
             </div>
-
         </article>
     `;
 }
 
-
-function handleGridAction(event) {
-    const button =
-        event.target.closest(
-            "[data-action]"
-        );
-
-    if (!button) {
-        return;
-    }
-
-    if (
-        button.dataset.action ===
-        "view"
-    ) {
-        openCustomerLoyalty(
-            button.dataset.id
-        );
-    }
+function renderAll() {
+    renderSummary();
+    renderCustomers();
 }
 
+/* ==========================================
+   MODAL DE CLIENTE
+========================================== */
 
 function openCustomerLoyalty(customerId) {
-    const customer =
-        getCustomers().find(
-            item =>
-                item.id === customerId
-        );
+    const customer = getCustomerById(customerId);
 
     if (!customer) {
+        showToast("No se encontró el cliente.");
         return;
     }
 
-    selectedCustomerId =
-        customer.id;
+    selectedCustomerId = customer.id;
 
     renderCustomerModal(customer);
 
-    loyaltyModal.classList.remove(
-        "hidden"
-    );
-
-    document.body.classList.add(
-        "modal-open"
-    );
+    elements.loyaltyModal.classList.remove("hidden");
+    document.body.classList.add("modal-open");
 }
-
 
 function renderCustomerModal(customer) {
-    const loyalty =
-        getLoyaltyData(customer);
+    const loyalty = getLoyaltyData(customer);
 
-    loyaltyModalAvatar.textContent =
-        getInitials(customer.name);
+    elements.avatar.textContent = getInitials(customer.name);
+    elements.name.textContent = customer.name;
+    elements.phone.textContent =
+        customer.phone || "Sin teléfono";
 
-    loyaltyModalName.textContent =
-        customer.name;
-
-    loyaltyModalPhone.textContent =
-        customer.phone ||
-        "Sin teléfono";
-
-    loyaltyModalVisits.textContent =
-        loyalty.visits;
-
-    loyaltyModalEarned.textContent =
+    elements.visits.textContent = loyalty.visits;
+    elements.earned.textContent =
         loyalty.totalRewardsEarned;
+    elements.redeemed.textContent = loyalty.redeemed;
 
-    loyaltyModalRedeemed.textContent =
-        loyalty.redeemed;
-
-    loyaltyModalStamps.innerHTML =
-        renderLargeStamps(
-            loyalty.progress
-        );
-
-    loyaltyModalProgress.style.width =
-        `${
-            (
-                loyalty.progress /
-                VISITS_REQUIRED
-            ) * 100
-        }%`;
-
-    if (
-        loyalty.availableRewards > 0
-    ) {
-        loyaltyRewardStatus.className =
-            "unified-status reward";
-
-        loyaltyRewardStatus.innerHTML =
-            "<span></span> Recompensa";
-
-        loyaltyModalDescription.textContent =
-            "El cliente tiene una recompensa disponible.";
-
-        redeemRewardButton.disabled =
-            false;
-    } else {
-        loyaltyRewardStatus.className =
-            "unified-status progress";
-
-        loyaltyRewardStatus.innerHTML =
-            "<span></span> En progreso";
-
-        loyaltyModalDescription.textContent =
-            `${loyalty.progress}/${VISITS_REQUIRED} visitas · Faltan ${loyalty.remaining}.`;
-
-        redeemRewardButton.disabled =
-            true;
-    }
-}
-
-
-function closeLoyaltyModal() {
-    loyaltyModal.classList.add(
-        "hidden"
+    elements.stamps.innerHTML = renderStamps(
+        loyalty.progress,
+        true
     );
 
-    selectedCustomerId = null;
+    elements.progress.style.width = `${
+        (loyalty.progress / VISITS_REQUIRED) * 100
+    }%`;
 
+    if (loyalty.availableRewards > 0) {
+        elements.status.className =
+            "unified-status reward";
+
+        elements.status.innerHTML =
+            "<span></span> Recompensa";
+
+        elements.description.textContent =
+            loyalty.availableRewards === 1
+                ? "El cliente tiene una recompensa disponible."
+                : `El cliente tiene ${loyalty.availableRewards} recompensas disponibles.`;
+
+    } else {
+        elements.status.className =
+            "unified-status progress";
+
+        elements.status.innerHTML =
+            "<span></span> En progreso";
+
+        elements.description.textContent =
+            `${loyalty.progress}/${VISITS_REQUIRED} visitas · ` +
+            `Faltan ${loyalty.remaining}.`;
+    }
+
+    updateOperationButtons();
+}
+
+function closeLoyaltyModal() {
+    elements.loyaltyModal.classList.add("hidden");
+    selectedCustomerId = null;
     unlockBody();
 }
 
-
-function registerSelectedCustomerVisit() {
+async function registerSelectedCustomerVisit() {
     if (!selectedCustomerId) {
         return;
     }
 
-    const id =
-        selectedCustomerId;
-
-    registerCustomerVisit(id);
-
-    const customer =
-        getCustomers().find(
-            item =>
-                item.id === id
-        );
-
-    if (customer) {
-        selectedCustomerId = id;
-        renderCustomerModal(customer);
-    }
+    await registerCustomerVisit(selectedCustomerId);
 }
 
-
-function redeemSelectedReward() {
-    if (!selectedCustomerId) {
-        return;
-    }
-
-    const customers =
-        getCustomers();
-
-    const customer =
-        customers.find(
-            item =>
-                item.id ===
-                selectedCustomerId
-        );
-
-    if (!customer) {
-        return;
-    }
-
-    const loyalty =
-        getLoyaltyData(customer);
-
-    if (
-        loyalty.availableRewards <= 0
-    ) {
-        showToast(
-            "No hay una recompensa disponible."
-        );
-
-        return;
-    }
-
-    customer.rewardsRedeemed =
-        Number(
-            customer.rewardsRedeemed ||
-            0
-        ) + 1;
-
-    saveCustomers(customers);
-
-    renderAll();
-    renderCustomerModal(customer);
-
-    showToast(
-        "Recompensa canjeada correctamente."
-    );
-}
-
+/* ==========================================
+   MODAL PARA REGISTRAR VISITA
+========================================== */
 
 function openVisitModal() {
-    visitCustomerSearch.value = "";
+    elements.visitSearch.value = "";
 
     renderVisitCustomerResults();
 
-    visitModal.classList.remove(
-        "hidden"
-    );
+    elements.visitModal.classList.remove("hidden");
+    document.body.classList.add("modal-open");
 
-    document.body.classList.add(
-        "modal-open"
-    );
-
-    setTimeout(
-        () =>
-            visitCustomerSearch.focus(),
-        50
-    );
+    elements.visitSearch.focus();
 }
 
-
 function closeVisitModal() {
-    visitModal.classList.add(
-        "hidden"
-    );
-
+    elements.visitModal.classList.add("hidden");
     unlockBody();
 }
 
-
 function renderVisitCustomerResults() {
-    const search =
-        visitCustomerSearch.value
-            .trim()
-            .toLowerCase();
+    const search = elements.visitSearch.value
+        .trim()
+        .toLowerCase();
 
-    const normalized =
-        normalizePhone(search);
+    const normalized = normalizePhone(search);
 
-    const customers =
-        getCustomers()
-            .filter(customer => {
-                if (!search) {
-                    return true;
-                }
+    const filtered = customers
+        .filter(customer => {
+            if (!search) {
+                return true;
+            }
 
-                return (
-                    customer.name
-                        .toLowerCase()
-                        .includes(search) ||
-                    (
-                        normalized &&
-                        normalizePhone(
-                            customer.phone ||
-                            ""
-                        ).includes(
-                            normalized
-                        )
-                    )
-                );
-            })
-            .slice(0, 6);
+            return (
+                String(customer.name || "")
+                    .toLowerCase()
+                    .includes(search) ||
+                (
+                    normalized &&
+                    normalizePhone(customer.phone)
+                        .includes(normalized)
+                )
+            );
+        })
+        .slice(0, 6);
 
-    if (!customers.length) {
-        visitCustomerResults.innerHTML = `
+    if (!filtered.length) {
+        elements.visitResults.innerHTML = `
             <div class="simple-result-empty">
                 No se encontraron clientes.
             </div>
@@ -868,276 +708,241 @@ function renderVisitCustomerResults() {
         return;
     }
 
-    visitCustomerResults.innerHTML =
-        customers
-            .map(customer => {
-                const loyalty =
-                    getLoyaltyData(
-                        customer
-                    );
+    elements.visitResults.innerHTML = filtered
+        .map(customer => {
+            const loyalty = getLoyaltyData(customer);
 
-                return `
-                    <button
-                        type="button"
-                        class="simple-customer-result"
-                        data-customer-id="${escapeHTML(
-                            customer.id
-                        )}"
-                    >
+            return `
+                <button
+                    type="button"
+                    class="simple-customer-result"
+                    data-customer-id="${escapeHTML(customer.id)}"
+                    ${operationInProgress ? "disabled" : ""}
+                >
+                    <div class="simple-result-avatar">
+                        ${escapeHTML(
+                            getInitials(customer.name)
+                        )}
+                    </div>
 
-                        <div class="simple-result-avatar">
+                    <div>
+                        <strong>
+                            ${escapeHTML(customer.name)}
+                        </strong>
+
+                        <span>
                             ${escapeHTML(
-                                getInitials(
-                                    customer.name
-                                )
+                                customer.phone || "Sin teléfono"
                             )}
-                        </div>
+                        </span>
+                    </div>
 
-                        <div>
-
-                            <strong>
-                                ${escapeHTML(
-                                    customer.name
-                                )}
-                            </strong>
-
-                            <span>
-                                ${escapeHTML(
-                                    customer.phone ||
-                                    "Sin teléfono"
-                                )}
-                            </span>
-
-                        </div>
-
-                        <small>
-                            ${loyalty.progress}/${VISITS_REQUIRED}
-                        </small>
-
-                    </button>
-                `;
-            })
-            .join("");
+                    <small>
+                        ${loyalty.progress}/${VISITS_REQUIRED}
+                    </small>
+                </button>
+            `;
+        })
+        .join("");
 }
 
+async function handleVisitCustomerResult(event) {
+    const button = event.target.closest(
+        "[data-customer-id]"
+    );
 
-function handleVisitCustomerResult(event) {
-    const button =
-        event.target.closest(
-            "[data-customer-id]"
-        );
-
-    if (!button) {
+    if (!button || operationInProgress) {
         return;
     }
 
-    registerCustomerVisit(
+    const success = await registerCustomerVisit(
         button.dataset.customerId
     );
 
-    closeVisitModal();
-}
-
-
-function registerCustomerVisit(customerId) {
-    const customers =
-        getCustomers();
-
-    const customer =
-        customers.find(
-            item =>
-                item.id === customerId
-        );
-
-    if (!customer) {
-        return;
+    if (success) {
+        closeVisitModal();
     }
-
-    customer.visits =
-        Number(
-            customer.visits || 0
-        ) + 1;
-
-    saveCustomers(customers);
-
-    renderAll();
-
-    showToast(
-        `Visita registrada para ${customer.name}.`
-    );
 }
 
-
-function getLoyaltyData(customer) {
-    const visits =
-        Math.max(
-            0,
-            Number(
-                customer.visits || 0
-            )
-        );
-
-    const redeemed =
-        Math.max(
-            0,
-            Number(
-                customer.rewardsRedeemed ||
-                0
-            )
-        );
-
-    const totalRewardsEarned =
-        Math.floor(
-            visits /
-            VISITS_REQUIRED
-        );
-
-    const availableRewards =
-        Math.max(
-            0,
-            totalRewardsEarned -
-            redeemed
-        );
-
-    let progress =
-        visits %
-        VISITS_REQUIRED;
-
-    if (
-        availableRewards > 0 &&
-        progress === 0
-    ) {
-        progress =
-            VISITS_REQUIRED;
-    }
-
-    const remaining =
-        progress === VISITS_REQUIRED
-            ? 0
-            : VISITS_REQUIRED -
-              progress;
-
-    return {
-        visits,
-        redeemed,
-        totalRewardsEarned,
-        availableRewards,
-        progress,
-        remaining
-    };
-}
-
-
-function renderStamps(progress) {
-    return Array.from(
-        {
-            length: VISITS_REQUIRED
-        },
-        (_, index) => `
-            <span
-                class="
-                    simple-loyalty-stamp
-                    ${
-                        index < progress
-                            ? "active"
-                            : ""
-                    }
-                "
-            >
-                ✂
-            </span>
-        `
-    ).join("");
-}
-
-
-function renderLargeStamps(progress) {
-    return Array.from(
-        {
-            length: VISITS_REQUIRED
-        },
-        (_, index) => `
-            <span
-                class="
-                    loyalty-stamp
-                    ${
-                        index < progress
-                            ? "active"
-                            : ""
-                    }
-                "
-            >
-                ✂
-            </span>
-        `
-    ).join("");
-}
-
+/* ==========================================
+   MODALES
+========================================== */
 
 function unlockBody() {
     if (
-        loyaltyModal.classList.contains(
-            "hidden"
-        ) &&
-        visitModal.classList.contains(
-            "hidden"
-        )
+        elements.loyaltyModal.classList.contains("hidden") &&
+        elements.visitModal.classList.contains("hidden")
     ) {
-        document.body.classList.remove(
-            "modal-open"
-        );
+        document.body.classList.remove("modal-open");
     }
 }
 
+/* ==========================================
+   EVENTOS
+========================================== */
 
-function getInitials(name) {
-    return String(name || "")
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .slice(0, 2)
-        .map(
-            word =>
-                word.charAt(0)
-        )
-        .join("")
-        .toUpperCase() || "?";
-}
+function configureEvents() {
+    elements.search.addEventListener("input", event => {
+        searchTerm = event.target.value
+            .trim()
+            .toLowerCase();
 
+        renderCustomers();
+    });
 
-function escapeHTML(value) {
-    const element =
-        document.createElement("div");
+    document.querySelectorAll(
+        ".module-filters .filter"
+    ).forEach(button => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(
+                ".module-filters .filter"
+            ).forEach(item => {
+                item.classList.remove("active");
+            });
 
-    element.textContent =
-        String(value ?? "");
+            button.classList.add("active");
 
-    return element.innerHTML;
-}
+            currentFilter = button.dataset.filter || "all";
 
+            renderCustomers();
+        });
+    });
 
-function showToast(message) {
-    const toast =
-        document.getElementById("toast");
+    elements.grid.addEventListener("click", event => {
+        const button = event.target.closest("[data-action]");
 
-    toast.textContent =
-        message;
+        if (button?.dataset.action === "view") {
+            openCustomerLoyalty(button.dataset.id);
+        }
+    });
 
-    toast.classList.add(
-        "show"
+    elements.registerButton.addEventListener(
+        "click",
+        openVisitModal
     );
 
-    clearTimeout(toastTimer);
+    elements.closeLoyalty.addEventListener(
+        "click",
+        closeLoyaltyModal
+    );
 
-    toastTimer =
-        setTimeout(
-            () =>
-                toast.classList.remove(
-                    "show"
-                ),
-            2800
-        );
+    elements.closeVisit.addEventListener(
+        "click",
+        closeVisitModal
+    );
+
+    elements.cancelVisit.addEventListener(
+        "click",
+        closeVisitModal
+    );
+
+    elements.addVisitButton.addEventListener(
+        "click",
+        registerSelectedCustomerVisit
+    );
+
+    elements.redeemButton.addEventListener(
+        "click",
+        redeemSelectedReward
+    );
+
+    elements.visitSearch.addEventListener(
+        "input",
+        renderVisitCustomerResults
+    );
+
+    elements.visitResults.addEventListener(
+        "click",
+        handleVisitCustomerResult
+    );
+
+    elements.loyaltyModal.addEventListener(
+        "click",
+        event => {
+            if (event.target === elements.loyaltyModal) {
+                closeLoyaltyModal();
+            }
+        }
+    );
+
+    elements.visitModal.addEventListener(
+        "click",
+        event => {
+            if (event.target === elements.visitModal) {
+                closeVisitModal();
+            }
+        }
+    );
+
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape") {
+            return;
+        }
+
+        if (
+            !elements.visitModal.classList.contains("hidden")
+        ) {
+            closeVisitModal();
+            return;
+        }
+
+        if (
+            !elements.loyaltyModal.classList.contains("hidden")
+        ) {
+            closeLoyaltyModal();
+        }
+    });
 }
 
+/* ==========================================
+   INICIALIZACIÓN
+========================================== */
+
+async function initialize() {
+    const missingElements = Object.entries(elements)
+        .filter(([, element]) => !element)
+        .map(([name]) => name);
+
+    if (missingElements.length) {
+        console.error(
+            "Faltan elementos HTML en Fidelidad:",
+            missingElements
+        );
+        return;
+    }
+
+    configureEvents();
+
+    elements.grid.innerHTML = `
+        <div class="module-empty-state">
+            <p>Cargando clientes desde Firebase...</p>
+        </div>
+    `;
+
+    try {
+        await refreshCustomers();
+
+    } catch (error) {
+        console.error(
+            "Error cargando Fidelidad:",
+            error
+        );
+
+        elements.grid.innerHTML = `
+            <div class="module-empty-state">
+                <strong>
+                    No fue posible cargar los clientes.
+                </strong>
+                <p>
+                    Revisa la conexión y los permisos de Firebase.
+                </p>
+            </div>
+        `;
+
+        showToast(
+            "No fue posible cargar Fidelidad desde Firebase."
+        );
+    }
+}
 
 initialize();
