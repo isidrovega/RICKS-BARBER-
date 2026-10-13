@@ -46,6 +46,18 @@ async function getGoogleWalletObject(client, walletObjectId) {
 }
 
 
+async function createGoogleWalletObject(client, loyaltyObject) {
+  const response = await client.request({
+    url: GOOGLE_WALLET_API_URL,
+    method: "POST",
+    data: loyaltyObject
+  });
+
+  return response.data;
+}
+
+
+
 const GOOGLE_WALLET_CLASS_ID =
   "3388000000023214898.3388000000023214898.ricks_barber_loyalty";
 
@@ -277,6 +289,30 @@ export const handler = async (event) => {
     const walletTokenSnapshot = await walletTokenRef.get();
 
     const walletQrExists = walletTokenSnapshot.exists;
+
+
+const walletQrToken = body.walletQrToken ?? null;
+
+if (walletQrToken !== null) {
+  if (
+    typeof walletQrToken !== "string" ||
+    !/^[a-f0-9]{64}$/.test(walletQrToken)
+  ) {
+    return respond(400, {
+      error: "Código QR no válido."
+    });
+  }
+
+  if (
+    !walletTokenSnapshot.exists ||
+    walletTokenSnapshot.data()?.token !== walletQrToken
+  ) {
+    return respond(403, {
+      error: "El código QR no corresponde a este cliente."
+    });
+  }
+}
+
 
 
 

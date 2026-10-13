@@ -7,7 +7,9 @@ import { auth } from "./firebase.js";
  *
  * Por ahora NO modifica tarjetas de Google Wallet.
  */
-export async function syncCustomerWallet(customerId) {
+
+export async function syncCustomerWallet(customerId, walletQrToken = null) {
+
     if (
         typeof customerId !== "string" ||
         !customerId.trim()
@@ -31,9 +33,14 @@ export async function syncCustomerWallet(customerId) {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`
             },
-            body: JSON.stringify({
-                customerId: customerId.trim()
-            })
+           
+body: JSON.stringify({
+    customerId: customerId.trim(),
+    ...(walletQrToken !== null
+        ? { walletQrToken }
+        : {})
+})
+
         }
     );
 
