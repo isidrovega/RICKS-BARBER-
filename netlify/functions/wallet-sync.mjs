@@ -6,6 +6,9 @@ import { getFirestore } from "firebase-admin/firestore";
 import { getWalletObjectId } from "./wallet-id.mjs";
 import { GoogleAuth } from "google-auth-library";
 
+import { randomBytes } from "node:crypto";
+
+
 const GOOGLE_WALLET_SCOPE =
   "https://www.googleapis.com/auth/wallet_object.issuer";
 
@@ -41,6 +44,82 @@ async function getGoogleWalletObject(client, walletObjectId) {
     throw error;
   }
 }
+
+
+const GOOGLE_WALLET_CLASS_ID =
+  "3388000000023214898.3388000000023214898.ricks_barber_loyalty";
+
+
+function buildGoogleWalletObject({
+  walletObjectId,
+  customerName,
+  visits,
+  progress,
+  rewardsAvailable,
+  qrValue
+}) {
+  return {
+    id: walletObjectId,
+    classId: GOOGLE_WALLET_CLASS_ID,
+    state: "ACTIVE",
+    accountName: customerName,
+    loyaltyPoints: {
+      label: "Visitas acumuladas",
+      balance: {
+        int: visits
+      }
+    },
+    barcode: {
+      type: "QR_CODE",
+      value: qrValue
+    },
+    textModulesData: [
+      {
+        id: "progress",
+        header: "Progreso",
+        body: `${progress} de 5 visitas para el próximo corte gratis`
+      },
+      {
+        id: "rewards",
+        header: "Cortes gratis disponibles",
+        body: String(rewardsAvailable)
+      }
+    ]
+  };
+}
+
+
+function generateWalletQrToken() {
+  return randomBytes(32).toString("hex");
+}
+
+async function getOrCreateWalletQrToken(db, walletTokenRef) {
+  return db.runTransaction(async (transaction) => {
+    const snapshot = await transaction.get(walletTokenRef);
+
+    if (snapshot.exists) {
+      const token = snapshot.data()?.token;
+
+      if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
+        throw new Error("El código QR guardado no es válido.");
+      }
+
+      return token;
+    }
+
+    const token = generateWalletQrToken();
+
+    transaction.create(walletTokenRef, {
+      token,
+      createdAt: new Date().toISOString()
+    });
+
+    return token;
+  });
+}
+
+
+
 
 
 
@@ -190,6 +269,17 @@ export const handler = async (event) => {
 
     const walletObjectId = getWalletObjectId(customerSnapshot.id);
 
+    const walletTokenRef = db
+      .collection("walletTokens")
+      .doc(walletObjectId);
+
+
+    const walletTokenSnapshot = await walletTokenRef.get();
+
+    const walletQrExists = walletTokenSnapshot.exists;
+
+
+
     const credentials = JSON.parse(
       process.env.GOOGLE_WALLET_CREDENTIALS || "{}"
     );
@@ -208,6 +298,7 @@ export const handler = async (event) => {
       customerId: customerSnapshot.id,
       walletObjectId,
       walletExists: walletObject !== null,
+      walletQrExists,
       visits,
       progress,
       rewardsAvailable,
