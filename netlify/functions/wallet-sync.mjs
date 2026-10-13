@@ -137,11 +137,18 @@ export const handler = async (event) => {
       Math.floor(visits / 5) - rewardsRedeemed
     );
 
+  
+    let progress = visits % 5;
+
+    if (rewardsAvailable > 0 && progress === 0) {
+      progress = 5;
+    }
+
     return respond(200, {
       ok: true,
       customerId: customerSnapshot.id,
       visits,
-      progress: visits % 5,
+      progress,
       rewardsAvailable,
       walletUpdated: false
     });
