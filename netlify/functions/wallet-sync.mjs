@@ -4,6 +4,47 @@ import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
 import { getWalletObjectId } from "./wallet-id.mjs";
+import { GoogleAuth } from "google-auth-library";
+
+const GOOGLE_WALLET_SCOPE =
+  "https://www.googleapis.com/auth/wallet_object.issuer";
+
+async function getGoogleWalletClient(credentials) {
+  const auth = new GoogleAuth({
+    credentials,
+    scopes: [GOOGLE_WALLET_SCOPE]
+  });
+
+  return auth.getClient();
+}
+
+
+const GOOGLE_WALLET_API_URL =
+  "https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject";
+
+
+async function getGoogleWalletObject(client, walletObjectId) {
+  const url = `${GOOGLE_WALLET_API_URL}/${encodeURIComponent(walletObjectId)}`;
+
+  try {
+    const response = await client.request({
+      url,
+      method: "GET"
+    });
+
+    return response.data;
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null;
+    }
+
+    throw error;
+  }
+}
+
+
+
+
 
 function respond(statusCode, data) {
   return {
@@ -146,15 +187,33 @@ export const handler = async (event) => {
       progress = 5;
     }
 
+
+    const walletObjectId = getWalletObjectId(customerSnapshot.id);
+
+    const credentials = JSON.parse(
+      process.env.GOOGLE_WALLET_CREDENTIALS || "{}"
+    );
+
+    const walletClient = await getGoogleWalletClient(credentials);
+    const walletObject = await getGoogleWalletObject(
+      walletClient,
+      walletObjectId
+    );
+
+
+
+    
     return respond(200, {
       ok: true,
       customerId: customerSnapshot.id,
-      walletObjectId: getWalletObjectId(customerSnapshot.id),
+      walletObjectId,
+      walletExists: walletObject !== null,
       visits,
       progress,
       rewardsAvailable,
       walletUpdated: false
     });
+
   } catch (error) {
     console.error("Error consultando Firebase:", error.message);
 
