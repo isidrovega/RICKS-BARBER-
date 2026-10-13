@@ -2,15 +2,63 @@
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
-
-import { getWalletObjectId } from "./wallet-id.mjs";
 import { GoogleAuth } from "google-auth-library";
+import { getWalletObjectId } from "./wallet-id.mjs";
 
-import { randomBytes } from "node:crypto";
-
+const PROJECT_ID = "ricks-barber-shop";
 
 const GOOGLE_WALLET_SCOPE =
   "https://www.googleapis.com/auth/wallet_object.issuer";
+
+const GOOGLE_WALLET_API_URL =
+  "https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject";
+
+const GOOGLE_WALLET_CLASS_ID =
+  "3388000000023214898.3388000000023214898.ricks_barber_loyalty";
+
+const QR_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
+
+function respond(statusCode, data) {
+  return {
+    statusCode,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "no-store"
+    },
+    body: JSON.stringify(data)
+  };
+}
+
+function getCredentials() {
+  const credentials = JSON.parse(
+    process.env.GOOGLE_WALLET_CREDENTIALS || "{}"
+  );
+
+  if (
+    credentials.project_id !== PROJECT_ID ||
+    !credentials.client_email ||
+    !credentials.private_key
+  ) {
+    throw new Error("Credenciales del servidor no configuradas.");
+  }
+
+  return credentials;
+}
+
+function getFirebaseApp(credentials) {
+  const existingApp = getApps().find(
+    (app) => app.name === "[DEFAULT]"
+  );
+
+  if (existingApp) {
+    return existingApp;
+  }
+
+  return initializeApp({
+    credential: cert(credentials),
+    projectId: PROJECT_ID
+  });
+}
 
 async function getGoogleWalletClient(credentials) {
   const auth = new GoogleAuth({
@@ -21,17 +69,10 @@ async function getGoogleWalletClient(credentials) {
   return auth.getClient();
 }
 
-
-const GOOGLE_WALLET_API_URL =
-  "https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject";
-
-
 async function getGoogleWalletObject(client, walletObjectId) {
-  const url = `${GOOGLE_WALLET_API_URL}/${encodeURIComponent(walletObjectId)}`;
-
   try {
     const response = await client.request({
-      url,
+      url: `${GOOGLE_WALLET_API_URL}/${encodeURIComponent(walletObjectId)}`,
       method: "GET"
     });
 
@@ -45,7 +86,6 @@ async function getGoogleWalletObject(client, walletObjectId) {
   }
 }
 
-
 async function createGoogleWalletObject(client, loyaltyObject) {
   const response = await client.request({
     url: GOOGLE_WALLET_API_URL,
@@ -56,11 +96,53 @@ async function createGoogleWalletObject(client, loyaltyObject) {
   return response.data;
 }
 
+async function updateGoogleWalletObject(
+  client,
+  walletObjectId,
+  loyaltyObject
+) {
+  const response = await client.request({
+    url: `${GOOGLE_WALLET_API_URL}/${encodeURIComponent(walletObjectId)}`,
+    method: "PATCH",
+    data: {
+      accountName: loyaltyObject.accountName,
+      loyaltyPoints: loyaltyObject.loyaltyPoints,
+      barcode: loyaltyObject.barcode,
+      textModulesData: loyaltyObject.textModulesData
+    }
+  });
 
+  return response.data;
+}
 
-const GOOGLE_WALLET_CLASS_ID =
-  "3388000000023214898.3388000000023214898.ricks_barber_loyalty";
+function getCustomerLoyalty(customer) {
+  const visits = Math.max(
+    0,
+    Math.floor(Number(customer.visits) || 0)
+  );
 
+  const rewardsRedeemed = Math.max(
+    0,
+    Math.floor(Number(customer.rewardsRedeemed) || 0)
+  );
+
+  const rewardsAvailable = Math.max(
+    0,
+    Math.floor(visits / 5) - rewardsRedeemed
+  );
+
+  let progress = visits % 5;
+
+  if (rewardsAvailable > 0 && progress === 0) {
+    progress = 5;
+  }
+
+  return {
+    visits,
+    progress,
+    rewardsAvailable
+  };
+}
 
 function buildGoogleWalletObject({
   walletObjectId,
@@ -100,81 +182,39 @@ function buildGoogleWalletObject({
   };
 }
 
+function walletNeedsUpdate(existing, desired) {
+  if (!existing) {
+    return false;
+  }
 
-function generateWalletQrToken() {
-  return randomBytes(32).toString("hex");
-}
+  const existingPoints =
+    Number(existing.loyaltyPoints?.balance?.int ?? -1);
 
-async function getOrCreateWalletQrToken(db, walletTokenRef) {
-  return db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(walletTokenRef);
+  const desiredPoints =
+    Number(desired.loyaltyPoints.balance.int);
 
-    if (snapshot.exists) {
-      const token = snapshot.data()?.token;
+  const existingModules = Array.isArray(existing.textModulesData)
+    ? existing.textModulesData
+    : [];
 
-      if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
-        throw new Error("El código QR guardado no es válido.");
-      }
+  const getModuleBody = (modules, id) =>
+    modules.find((module) => module.id === id)?.body ?? null;
 
-      return token;
-    }
-
-    const token = generateWalletQrToken();
-
-    transaction.create(walletTokenRef, {
-      token,
-      createdAt: new Date().toISOString()
-    });
-
-    return token;
-  });
-}
-
-
-
-
-
-
-
-
-function respond(statusCode, data) {
-  return {
-    statusCode,
-    headers: {
-      "Content-Type": "application/json",
-      "Cache-Control": "no-store"
-    },
-    body: JSON.stringify(data)
-  };
-}
-
-function getFirebaseApp() {
-  const credentials = JSON.parse(
-    process.env.GOOGLE_WALLET_CREDENTIALS || "{}"
+  return (
+    existing.accountName !== desired.accountName ||
+    existingPoints !== desiredPoints ||
+    existing.barcode?.value !== desired.barcode.value ||
+    getModuleBody(existingModules, "progress") !==
+      getModuleBody(desired.textModulesData, "progress") ||
+    getModuleBody(existingModules, "rewards") !==
+      getModuleBody(desired.textModulesData, "rewards")
   );
-
-  if (
-    credentials.project_id !== "ricks-barber-shop" ||
-    !credentials.client_email ||
-    !credentials.private_key
-  ) {
-    throw new Error("Credenciales del servidor no configuradas");
-  }
-
-  if (getApps().length > 0) {
-    return getApps()[0];
-  }
-
-  return initializeApp({
-    credential: cert(credentials),
-    projectId: "ricks-barber-shop"
-  });
 }
 
 export const handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return respond(405, {
-      error: "Método no permitido"
+      error: "Método no permitido."
     });
   }
 
@@ -187,14 +227,17 @@ export const handler = async (event) => {
 
   if (!match) {
     return respond(401, {
-      error: "Se requiere iniciar sesión"
+      error: "Se requiere iniciar sesión."
     });
   }
 
+  let credentials;
+  let app;
   let decodedToken;
 
   try {
-    const app = getFirebaseApp();
+    credentials = getCredentials();
+    app = getFirebaseApp(credentials);
 
     decodedToken = await getAuth(app).verifyIdToken(
       match[1],
@@ -204,14 +247,14 @@ export const handler = async (event) => {
     console.error("Error de autenticación:", error.message);
 
     return respond(401, {
-      error: "Sesión no válida"
+      error: "Sesión no válida."
     });
   }
 
   try {
-    const db = getFirestore(getFirebaseApp());
+    const db = getFirestore(app);
 
-    // Comprobar los permisos en el servidor.
+    // Verificar que la sesión pertenece a un administrador.
     const adminSnapshot = await db
       .collection("admins")
       .doc(decodedToken.uid)
@@ -225,11 +268,30 @@ export const handler = async (event) => {
       admin?.role !== "admin"
     ) {
       return respond(403, {
-        error: "No tienes permisos de administrador"
+        error: "No tienes permisos de administrador."
       });
     }
 
-    const body = JSON.parse(event.body || "{}");
+    let body;
+
+    try {
+      body = JSON.parse(event.body || "{}");
+    } catch {
+      return respond(400, {
+        error: "La solicitud no contiene JSON válido."
+      });
+    }
+
+    if (
+      body === null ||
+      typeof body !== "object" ||
+      Array.isArray(body)
+    ) {
+      return respond(400, {
+        error: "Formato de solicitud no válido."
+      });
+    }
+
     const customerId = body.customerId;
 
     if (
@@ -239,152 +301,167 @@ export const handler = async (event) => {
       customerId.includes("/")
     ) {
       return respond(400, {
-        error: "Identificador de cliente no válido"
+        error: "Identificador de cliente no válido."
+      });
+    }
+
+    const createRequested = body.createWallet === true;
+    const updateRequested = body.updateWallet === true;
+
+    if (createRequested && updateRequested) {
+      return respond(400, {
+        error: "No puedes crear y actualizar en la misma solicitud."
       });
     }
 
     const customerSnapshot = await db
       .collection("customers")
-      .doc(customerId)
+      .doc(customerId.trim())
       .get();
 
     if (!customerSnapshot.exists) {
       return respond(404, {
-        error: "Cliente no encontrado"
+        error: "Cliente no encontrado."
       });
     }
 
     const customer = customerSnapshot.data();
+    const loyalty = getCustomerLoyalty(customer);
 
-    const visits = Math.max(
-      0,
-      Math.floor(Number(customer.visits) || 0)
+    const walletObjectId = getWalletObjectId(
+      customerSnapshot.id
     );
 
-    const rewardsRedeemed = Math.max(
-      0,
-      Math.floor(Number(customer.rewardsRedeemed) || 0)
-    );
+    const walletTokenSnapshot = await db
+      .collection("walletTokens")
+      .doc(walletObjectId)
+      .get();
 
-    const rewardsAvailable = Math.max(
-      0,
-      Math.floor(visits / 5) - rewardsRedeemed
-    );
+    const storedQrToken = walletTokenSnapshot.exists
+      ? walletTokenSnapshot.data()?.token
+      : null;
 
-  
-    let progress = visits % 5;
+    const walletQrExists =
+      typeof storedQrToken === "string" &&
+      QR_TOKEN_PATTERN.test(storedQrToken);
 
-    if (rewardsAvailable > 0 && progress === 0) {
-      progress = 5;
+    // Compatibilidad con las pruebas anteriores:
+    // si el navegador envía un QR, debe coincidir.
+    const providedQrToken = body.walletQrToken ?? null;
+
+    if (providedQrToken !== null) {
+      if (
+        typeof providedQrToken !== "string" ||
+        !QR_TOKEN_PATTERN.test(providedQrToken)
+      ) {
+        return respond(400, {
+          error: "Código QR no válido."
+        });
+      }
+
+      if (
+        !walletQrExists ||
+        providedQrToken !== storedQrToken
+      ) {
+        return respond(403, {
+          error: "El código QR no corresponde a este cliente."
+        });
+      }
     }
 
+    // Nunca crear ni actualizar una tarjeta sin su QR permanente.
+    if (
+      (createRequested || updateRequested) &&
+      !walletQrExists
+    ) {
+      return respond(400, {
+        error: "El cliente no tiene un código QR permanente válido."
+      });
+    }
 
-    const walletObjectId = getWalletObjectId(customerSnapshot.id);
-
-    const walletTokenRef = db
-      .collection("walletTokens")
-      .doc(walletObjectId);
-
-
-    const walletTokenSnapshot = await walletTokenRef.get();
-
-    const walletQrExists = walletTokenSnapshot.exists;
-
-
-const walletQrToken = body.walletQrToken ?? null;
-
-if (walletQrToken !== null) {
-  if (
-    typeof walletQrToken !== "string" ||
-    !/^[a-f0-9]{64}$/.test(walletQrToken)
-  ) {
-    return respond(400, {
-      error: "Código QR no válido."
-    });
-  }
-
-  if (
-    !walletTokenSnapshot.exists ||
-    walletTokenSnapshot.data()?.token !== walletQrToken
-  ) {
-    return respond(403, {
-      error: "El código QR no corresponde a este cliente."
-    });
-  }
-}
-
-
-
-
-    const credentials = JSON.parse(
-      process.env.GOOGLE_WALLET_CREDENTIALS || "{}"
+    const walletClient = await getGoogleWalletClient(
+      credentials
     );
 
-    const walletClient = await getGoogleWalletClient(credentials);
-    const walletObject = await getGoogleWalletObject(
+    let walletObject = await getGoogleWalletObject(
       walletClient,
       walletObjectId
     );
 
+    let walletCreated = false;
+    let walletUpdated = false;
 
-const createRequested = body.createWallet === true;
+    if (createRequested || updateRequested) {
+      const desiredWalletObject = buildGoogleWalletObject({
+        walletObjectId,
+        customerName: String(customer.name || "Cliente"),
+        visits: loyalty.visits,
+        progress: loyalty.progress,
+        rewardsAvailable: loyalty.rewardsAvailable,
+        qrValue: storedQrToken
+      });
 
+      if (createRequested && walletObject === null) {
+        try {
+          walletObject = await createGoogleWalletObject(
+            walletClient,
+            desiredWalletObject
+          );
 
-if (
-  createRequested &&
-  (
-    walletQrToken === null ||
-    !walletTokenSnapshot.exists ||
-    walletTokenSnapshot.data()?.token !== walletQrToken
-  )
-) {
+          walletCreated = true;
+        } catch (error) {
+          // Si otra solicitud creó la tarjeta al mismo tiempo,
+          // recuperar la tarjeta existente en vez de duplicarla.
+          if (error.response?.status !== 409) {
+            throw error;
+          }
 
-  return respond(400, {
-    error: "Se requiere el código QR permanente para crear la tarjeta."
-  });
-}
+          walletObject = await getGoogleWalletObject(
+            walletClient,
+            walletObjectId
+          );
 
-let walletCreated = false;
+          if (!walletObject) {
+            throw error;
+          }
+        }
+      }
 
-if (createRequested && walletObject === null) {
-  const loyaltyObject = buildGoogleWalletObject({
-    walletObjectId,
-    customerName: String(customerSnapshot.data().name || "Cliente"),
-    visits,
-    progress,
-    rewardsAvailable,
-    qrValue: walletQrToken
-  });
+      if (
+        updateRequested &&
+        walletObject !== null &&
+        walletNeedsUpdate(walletObject, desiredWalletObject)
+      ) {
+        walletObject = await updateGoogleWalletObject(
+          walletClient,
+          walletObjectId,
+          desiredWalletObject
+        );
 
-  await createGoogleWalletObject(walletClient, loyaltyObject);
-  walletCreated = true;
-}
+        walletUpdated = true;
+      }
+    }
 
-
-
-
-    
     return respond(200, {
       ok: true,
       customerId: customerSnapshot.id,
       walletObjectId,
-      
-walletExists: walletObject !== null || walletCreated,
-walletCreated,
-walletQrExists,
-
-      visits,
-      progress,
-      rewardsAvailable,
-      walletUpdated: false
+      walletExists: walletObject !== null,
+      walletCreated,
+      walletUpdated,
+      walletQrExists,
+      visits: loyalty.visits,
+      progress: loyalty.progress,
+      rewardsAvailable: loyalty.rewardsAvailable
     });
-
   } catch (error) {
-    console.error("Error consultando Firebase:", error.message);
+    console.error(
+      "Error en sincronización de Google Wallet:",
+      error.message
+    );
 
     return respond(500, {
-      error: "No se pudo consultar Firebase"
+      error: "No se pudo sincronizar Google Wallet."
     });
   }
 };
-
