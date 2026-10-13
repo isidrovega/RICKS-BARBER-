@@ -15,7 +15,7 @@ import {
 } from "./storage.js";
 
 import { db, auth } from "./firebase.js";
-import { syncCustomerWallet } from "./wallet-sync.js";
+import { updateCustomerWallet } from "./wallet-sync.js";
 
 import {
     collection,
@@ -1306,12 +1306,12 @@ if (result.loyaltyAdded) {
 
     if (result.loyaltyCustomerId) {
         try {
-            const walletResult = await syncCustomerWallet(
+            const walletResult = await updateCustomerWallet(
                 result.loyaltyCustomerId
             );
 
             console.log(
-                "Consulta de fidelidad completada:",
+                "Sincronización de Google Wallet completada:",
                 {
                     visits: walletResult.visits,
                     progress: walletResult.progress,
@@ -1321,7 +1321,7 @@ if (result.loyaltyAdded) {
             );
         } catch (walletError) {
             console.warn(
-                "No se pudo consultar la fidelidad:",
+                "No se pudo actualizar Google Wallet:",
                 walletError.message
             );
         }

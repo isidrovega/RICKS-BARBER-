@@ -371,15 +371,31 @@ export const handler = async (event) => {
 
     // Nunca crear ni actualizar una tarjeta sin su QR permanente.
     if (
-      (createRequested || updateRequested) &&
-      !walletQrExists
+      createRequested && !walletQrExists
     ) {
       return respond(400, {
         error: "El cliente no tiene un código QR permanente válido."
       });
     }
 
-    const walletClient = await getGoogleWalletClient(
+    // Clientes sin QR: omitir actualización sin error.
+  // No se crea ninguna tarjeta ni se modifica Firestore.
+  if (updateRequested && !walletQrExists) {
+    return respond(200, {
+      ok: true,
+      customerId: customerSnapshot.id,
+      walletObjectId,
+      walletExists: false,
+      walletCreated: false,
+      walletUpdated: false,
+      walletQrExists: false,
+      visits: loyalty.visits,
+      progress: loyalty.progress,
+      rewardsAvailable: loyalty.rewardsAvailable
+    });
+  }
+
+  const walletClient = await getGoogleWalletClient(
       credentials
     );
 

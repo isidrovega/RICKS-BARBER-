@@ -4,6 +4,7 @@
 ========================================================= */
 
 import { db } from "./firebase.js";
+import { updateCustomerWallet } from "./wallet-sync.js";
 
 import {
     collection,
@@ -1011,73 +1012,62 @@ export async function getOrCreateCustomer(
    ADD CUSTOMER VISIT
 ========================================================= */
 
-export async function addCustomerVisit(
-    phone
-) {
-
-    const normalized =
-        normalizePhone(
-            phone
-        );
-
+export async function addCustomerVisit(phone) {
+    const normalized = normalizePhone(phone);
 
     if (!normalized) {
-
         return false;
-
     }
 
+    const customer = await findCustomerByPhone(phone);
+
+    if (!customer) {
+        return false;
+    }
+
+    const customerRef = doc(
+        db,
+        CUSTOMERS_COLLECTION,
+        customer.id
+    );
 
     try {
-
-        const customer =
-            await findCustomerByPhone(
-                phone
-            );
-
-
-        if (!customer) {
-
-            return false;
-
-        }
-
-
-        const customerRef =
-            doc(
-                db,
-                CUSTOMERS_COLLECTION,
-                customer.id
-            );
-
-
-        await updateDoc(
-            customerRef,
-            {
-                visits:
-                    increment(1),
-
-                updatedAt:
-                    new Date()
-                        .toISOString()
-            }
-        );
-
-
-        return true;
-
+        await updateDoc(customerRef, {
+            visits: increment(1),
+            updatedAt: new Date().toISOString()
+        });
     } catch (error) {
-
         console.error(
             "Error agregando visita al cliente:",
             error
         );
 
-
         throw error;
-
     }
 
+    // Firestore ya guardó la visita.
+    // Google Wallet nunca debe provocar
+    // que se registre una segunda vez.
+    try {
+        const result = await updateCustomerWallet(
+            customer.id
+        );
+
+        console.info(
+            "Google Wallet:",
+            {
+                walletExists: result.walletExists,
+                walletUpdated: result.walletUpdated
+            }
+        );
+    } catch (error) {
+        console.warn(
+            "Visita guardada. No se pudo sincronizar Wallet:",
+            error.message
+        );
+    }
+
+    return true;
 }
 
 
