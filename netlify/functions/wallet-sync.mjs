@@ -327,14 +327,52 @@ if (walletQrToken !== null) {
     );
 
 
+const createRequested = body.createWallet === true;
+
+
+if (
+  createRequested &&
+  (
+    walletQrToken === null ||
+    !walletTokenSnapshot.exists ||
+    walletTokenSnapshot.data()?.token !== walletQrToken
+  )
+) {
+
+  return respond(400, {
+    error: "Se requiere el código QR permanente para crear la tarjeta."
+  });
+}
+
+let walletCreated = false;
+
+if (createRequested && walletObject === null) {
+  const loyaltyObject = buildGoogleWalletObject({
+    walletObjectId,
+    customerName: String(customerSnapshot.data().name || "Cliente"),
+    visits,
+    progress,
+    rewardsAvailable,
+    qrValue: walletQrToken
+  });
+
+  await createGoogleWalletObject(walletClient, loyaltyObject);
+  walletCreated = true;
+}
+
+
+
 
     
     return respond(200, {
       ok: true,
       customerId: customerSnapshot.id,
       walletObjectId,
-      walletExists: walletObject !== null,
-      walletQrExists,
+      
+walletExists: walletObject !== null || walletCreated,
+walletCreated,
+walletQrExists,
+
       visits,
       progress,
       rewardsAvailable,
