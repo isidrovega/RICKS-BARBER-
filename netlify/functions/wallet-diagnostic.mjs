@@ -2,8 +2,7 @@
 import { GoogleAuth } from "google-auth-library";
 import { timingSafeEqual } from "node:crypto";
 
-const ISSUER_ID = "3388000000023214898";
-const CLASS_ID = `${ISSUER_ID}.ricks_barber_loyalty`;
+const CLASS_ID = `${ISSUER_ID}.3388000000023214898.ricks_barber_loyalty`;
 
 function respond(status, data) {
   return new Response(JSON.stringify(data), {
