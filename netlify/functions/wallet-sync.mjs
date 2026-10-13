@@ -3,6 +3,8 @@ import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
 
+import { getWalletObjectId } from "./wallet-id.mjs";
+
 function respond(statusCode, data) {
   return {
     statusCode,
@@ -147,6 +149,7 @@ export const handler = async (event) => {
     return respond(200, {
       ok: true,
       customerId: customerSnapshot.id,
+      walletObjectId: getWalletObjectId(customerSnapshot.id),
       visits,
       progress,
       rewardsAvailable,
