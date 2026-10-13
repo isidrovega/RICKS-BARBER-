@@ -1282,9 +1282,16 @@ async function updateStatus(
                     });
                 }
 
+               
+
                 return {
-                    loyaltyAdded: shouldApplyLoyalty
+                    loyaltyAdded: shouldApplyLoyalty,
+                    loyaltyCustomerId: shouldApplyLoyalty
+                        ? (appointment.customerId || customerId)
+                        : null
                 };
+
+
             }
         );
 
