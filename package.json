@@ -1,0 +1,10 @@
+{
+  "name": "ricks-barber-shop",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "google-auth-library": "^11.3.0",
+    "jsonwebtoken": "^9.0.2"
+  }
+}

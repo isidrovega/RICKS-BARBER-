@@ -67,3 +67,11 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+
+node_modules/
+.env
+.env.*
+*.pem
+*service-account*.json
+*credentials*.json
