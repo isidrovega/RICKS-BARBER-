@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { timingSafeEqual } from "node:crypto";
 
 const ISSUER_ID = "3388000000023214898";
-const CLASS_ID = `${ISSUER_ID}.ricks_barber_loyalty`;
+const CLASS_ID = `${ISSUER_ID}.3388000000023214898.ricks_barber_loyalty`;
 
 const headers = {
   "Content-Type": "application/json; charset=utf-8",
