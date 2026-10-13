@@ -2,8 +2,8 @@
 import { GoogleAuth } from "google-auth-library";
 import { timingSafeEqual } from "node:crypto";
 
-const CLASS_ID =
-  "3388000000023214898.ricks_barber_loyalty";
+const ISSUER_ID = "3388000000023214898";
+const CLASS_ID = `${ISSUER_ID}.ricks_barber_loyalty`;
 
 function respond(status, data) {
   return new Response(JSON.stringify(data), {
@@ -38,13 +38,9 @@ export default async function handler(request) {
     });
   }
 
-  const providedToken = request.headers.get(
-    "x-wallet-test-token"
-  );
-
   if (
     !validToken(
-      providedToken,
+      request.headers.get("x-wallet-test-token"),
       process.env.WALLET_TEST_TOKEN
     )
   ) {
@@ -65,7 +61,7 @@ export default async function handler(request) {
       !credentials.private_key
     ) {
       return respond(500, {
-        error: "Credenciales no configuradas correctamente."
+        error: "Credenciales inválidas."
       });
     }
 
@@ -81,42 +77,60 @@ export default async function handler(request) {
 
     if (!accessToken.token) {
       return respond(502, {
-        error: "Google no entregó un token de acceso."
+        error: "No se obtuvo autorización de Google."
       });
     }
 
-    const url =
-      "https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass/" +
-      encodeURIComponent(CLASS_ID);
+    const baseUrl =
+      "https://walletobjects.googleapis.com/walletobjects/v1";
 
-    const googleResponse = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken.token}`,
-        Accept: "application/json"
+    const endpoints = [
+      {
+        name: "class",
+        url: `${baseUrl}/loyaltyClass/${encodeURIComponent(CLASS_ID)}`
+      },
+      {
+        name: "classes",
+        url: `${baseUrl}/loyaltyClass?issuerId=${ISSUER_ID}&maxResults=100`
       }
-    });
+    ];
 
-    const result = await googleResponse.json();
+    const results = {};
 
-    if (!googleResponse.ok) {
-      return respond(200, {
-        ok: false,
-        googleStatus: googleResponse.status,
-        googleError:
-          result.error?.status || "UNKNOWN",
-        message:
-          result.error?.message ||
-          "Google Wallet devolvió un error."
+    for (const endpoint of endpoints) {
+      const response = await fetch(endpoint.url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${accessToken.token}`,
+          Accept: "application/json"
+        }
       });
+
+      const data = await response.json();
+
+      if (endpoint.name === "class") {
+        results.class = {
+          status: response.status,
+          id: data.id || null,
+          reviewStatus: data.reviewStatus || null,
+          error: data.error?.message || null
+        };
+      } else {
+        results.classes = {
+          status: response.status,
+          ids: Array.isArray(data.resources)
+            ? data.resources.map(item => item.id)
+            : [],
+          nextPageTokenPresent: Boolean(data.pagination?.nextPageToken),
+          error: data.error?.message || null
+        };
+      }
     }
 
     return respond(200, {
       ok: true,
-      googleStatus: googleResponse.status,
-      classId: result.id,
-      reviewStatus: result.reviewStatus || "NO_DISPONIBLE",
-      issuerName: result.issuerName || "NO_DISPONIBLE"
+      issuerId: ISSUER_ID,
+      results
     });
   } catch {
     return respond(500, {
