@@ -14,7 +14,8 @@ import {
     normalizePhone
 } from "./storage.js";
 
-import { db } from "./firebase.js";
+import { db, auth } from "./firebase.js";
+import { syncCustomerWallet } from "./wallet-sync.js";
 
 import {
     collection,
@@ -1297,11 +1298,36 @@ async function updateStatus(
 
         await refreshAppointments();
 
-        if (result.loyaltyAdded) {
-            showToast(
-                "Cita completada. +1 visita registrada."
+      
+if (result.loyaltyAdded) {
+    showToast(
+        "Cita completada. +1 visita registrada."
+    );
+
+    if (result.loyaltyCustomerId) {
+        try {
+            const walletResult = await syncCustomerWallet(
+                result.loyaltyCustomerId
             );
-        } else {
+
+            console.log(
+                "Consulta de fidelidad completada:",
+                {
+                    visits: walletResult.visits,
+                    progress: walletResult.progress,
+                    rewardsAvailable: walletResult.rewardsAvailable,
+                    walletUpdated: walletResult.walletUpdated
+                }
+            );
+        } catch (walletError) {
+            console.warn(
+                "No se pudo consultar la fidelidad:",
+                walletError.message
+            );
+        }
+    }
+}
+ else {
             const messages = {
                 confirmed: "Cita confirmada.",
                 cancelled: "Cita cancelada.",
