@@ -1,0 +1,579 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mi tarjeta | Rick's Barber Shop">
+  <style>
+    :root {
+      --red: #850817;
+      --dark: #171717;
+      --light: #f5f5f5;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--dark);
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    main {
+      width: min(440px, calc(100% - 32px));
+      margin: 35px auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      font-size: 38px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 23px;
+    }
+
+    .subtitle {
+      color: #d1d1d1;
+      line-height: 1.6;
+    }
+
+    .panel {
+      background: white;
+      color: #242424;
+      padding: 25px;
+      border-radius: 18px;
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      margin: 18px 0 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 9px;
+      font-size: 16px;
+    }
+
+    button {
+      width: 100%;
+      padding: 15px;
+      margin-top: 18px;
+      background: var(--red);
+      border: 0;
+      border-radius: 9px;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    .secondary {
+      background: #444;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .message {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      text-align: center;
+      line-height: 1.5;
+      margin: 20px 0;
+    }
+
+    .error { color: #ff9eaa; }
+    .success { color: #9df0b7; }
+
+    .card {
+      overflow: hidden;
+      background: linear-gradient(135deg, #950b1c, #56040d);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 15px 40px #0006;
+    }
+
+    .card small {
+      color: #f5c9ce;
+      letter-spacing: 1px;
+    }
+
+    .card h2 {
+      margin: 12px 0 24px;
+      font-size: 24px;
+    }
+
+    .client-name {
+      font-size: 21px;
+      font-weight: bold;
+      overflow-wrap: anywhere;
+      margin: 8px 0 24px;
+    }
+
+    .stamps {
+      display: flex;
+      justify-content: space-between;
+      gap: 7px;
+      margin: 14px 0;
+    }
+
+    .stamp {
+      display: grid;
+      place-items: center;
+      width: 50px;
+      height: 50px;
+      border: 2px solid #d69ba3;
+      border-radius: 50%;
+      font-size: 22px;
+    }
+
+    .stamp.filled {
+      background: white;
+      color: var(--red);
+      border-color: white;
+    }
+
+    .card-footer {
+      margin-top: 22px;
+      border-top: 1px solid #ffffff55;
+      padding-top: 15px;
+      font-size: 14px;
+      color: #f5dadd;
+    }
+
+    .note {
+      color: #aaa;
+      font-size: 13px;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    #recaptcha-container {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo">✂</div>
+    <h1>RICK'S BARBER SHOP</h1>
+    <p class="subtitle">
+      Tu tarjeta de fidelidad digital.<br>
+      Acumula visitas y gana recompensas.
+    </p>
+  </header>
+
+  <section id="registrationSection" class="panel hidden">
+    <h2>Obtén tu tarjeta</h2>
+    <p>Regístrate o recupera tu tarjeta con tu celular.</p>
+
+    <form id="phoneForm">
+      <label for="customerName">Nombre completo</label>
+      <input
+        id="customerName"
+        type="text"
+        maxlength="100"
+        autocomplete="name"
+        placeholder="Tu nombre"
+      >
+
+      <label for="customerPhone">Celular de México</label>
+      <input
+        id="customerPhone"
+        type="tel"
+        inputmode="tel"
+        autocomplete="tel"
+        placeholder="6671234567"
+        required
+      >
+
+      <button id="sendButton" type="submit">
+        Enviar código por SMS
+      </button>
+    </form>
+
+    <div id="recaptcha-container"></div>
+  </section>
+
+  <section id="verificationSection" class="panel hidden">
+    <h2>Verifica tu celular</h2>
+    <p>
+      Escribe el código que recibiste por SMS.
+    </p>
+
+    <form id="codeForm">
+      <label for="verificationCode">Código de verificación</label>
+      <input
+        id="verificationCode"
+        type="text"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+        maxlength="6"
+        pattern="[0-9]{6}"
+        placeholder="123456"
+        required
+      >
+
+      <button id="verifyButton" type="submit">
+        Verificar y obtener tarjeta
+      </button>
+    </form>
+
+    <button id="retryButton" class="secondary" type="button">
+      Usar otro número
+    </button>
+  </section>
+
+  <section id="cardSection" class="hidden">
+    <div class="card">
+      <small>TARJETA DE FIDELIDAD</small>
+      <h2>RICK'S BARBER SHOP</h2>
+
+      <small>CLIENTE</small>
+      <div id="cardName" class="client-name"></div>
+
+      <small>PROGRESO DE VISITAS</small>
+      <div id="stamps" class="stamps"></div>
+
+      <p id="visitsText"></p>
+
+      <div class="card-footer">
+        Cada 5 visitas obtienes una recompensa.
+      </div>
+    </div>
+
+    <button id="refreshButton" type="button">
+      Actualizar mis visitas
+    </button>
+
+    <button id="logoutButton" class="secondary" type="button">
+      Cerrar sesión
+    </button>
+
+    <p class="note">
+      Esta es tu tarjeta web. La opción de guardarla
+      en Apple Wallet o Google Wallet estará
+      disponible cuando activemos esos servicios.
+    </p>
+  </section>
+
+  <p id="message" class="message" role="status" aria-live="polite">
+    Preparando registro...
+  </p>
+</main>
+
+<script type="module">
+  import { auth } from "./js/firebase.js";
+
+  import {
+    RecaptchaVerifier,
+    signInWithPhoneNumber,
+    onAuthStateChanged,
+    signOut
+  } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+  import {
+    getFunctions,
+    httpsCallable
+  } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-functions.js";
+
+  const functions = getFunctions(auth.app, "us-central1");
+
+  const registerCustomer = httpsCallable(
+    functions,
+    "registerWalletCustomer"
+  );
+
+  const $ = id => document.getElementById(id);
+
+  let confirmationResult = null;
+  let recaptchaVerifier = null;
+  let busy = false;
+
+  function showSection(sectionId) {
+    for (const id of [
+      "registrationSection",
+      "verificationSection",
+      "cardSection"
+    ]) {
+      $(id).classList.toggle("hidden", id !== sectionId);
+    }
+  }
+
+  function setMessage(text, type = "") {
+    $("message").textContent = text;
+    $("message").className = `message ${type}`;
+  }
+
+  function setBusy(value) {
+    busy = value;
+
+    for (const id of [
+      "sendButton",
+      "verifyButton",
+      "retryButton",
+      "refreshButton",
+      "logoutButton"
+    ]) {
+      $(id).disabled = value;
+    }
+  }
+
+  function normalizeMexicanPhone(value) {
+    let digits = String(value || "").replace(/\D/g, "");
+
+    if (digits.startsWith("521") && digits.length === 13) {
+      digits = digits.slice(3);
+    } else if (digits.startsWith("52") && digits.length === 12) {
+      digits = digits.slice(2);
+    }
+
+    if (digits.length !== 10) {
+      throw new Error(
+        "Ingresa un número mexicano válido de 10 dígitos."
+      );
+    }
+
+    return `+52${digits}`;
+  }
+
+  async function prepareRecaptcha() {
+    if (recaptchaVerifier) {
+      return recaptchaVerifier;
+    }
+
+    recaptchaVerifier = new RecaptchaVerifier(
+      auth,
+      "recaptcha-container",
+      {
+        size: "normal"
+      }
+    );
+
+    await recaptchaVerifier.render();
+
+    return recaptchaVerifier;
+  }
+
+  async function loadCard(name = "") {
+    const result = await registerCustomer({
+      name: String(name || "").trim()
+    });
+
+    const customer = result.data.customer;
+
+    $("cardName").textContent = customer.name;
+
+    const visits = Number(customer.visits) || 0;
+    const progress = visits % 5;
+
+    $("stamps").replaceChildren();
+
+    for (let i = 0; i < 5; i++) {
+      const stamp = document.createElement("div");
+
+      stamp.className =
+        `stamp ${i < progress ? "filled" : ""}`;
+
+      stamp.textContent = i < progress ? "✓" : "✂";
+
+      $("stamps").appendChild(stamp);
+    }
+
+    $("visitsText").textContent =
+      `${progress} de 5 visitas en el ciclo actual`;
+
+    showSection("cardSection");
+    setMessage("Tu tarjeta está lista.", "success");
+  }
+
+  $("phoneForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (busy) return;
+
+    setBusy(true);
+
+    try {
+      const phone = normalizeMexicanPhone(
+        $("customerPhone").value
+      );
+
+      const verifier = await prepareRecaptcha();
+
+      setMessage("Enviando código SMS...");
+
+      confirmationResult = await signInWithPhoneNumber(
+        auth,
+        phone,
+        verifier
+      );
+
+      showSection("verificationSection");
+
+      setMessage(
+        "Código enviado. Revisa los mensajes de tu celular.",
+        "success"
+      );
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        error.message || "No se pudo enviar el código.",
+        "error"
+      );
+
+      if (recaptchaVerifier) {
+        recaptchaVerifier.clear();
+        recaptchaVerifier = null;
+      }
+
+      $("recaptcha-container").replaceChildren();
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $("codeForm").addEventListener("submit", async event => {
+    event.preventDefault();
+
+    if (busy || !confirmationResult) return;
+
+    setBusy(true);
+
+    try {
+      const code = $("verificationCode").value.trim();
+
+      if (!/^\d{6}$/.test(code)) {
+        throw new Error("Ingresa los 6 dígitos del código.");
+      }
+
+      setMessage("Verificando tu celular...");
+
+      await confirmationResult.confirm(code);
+
+      setMessage("Preparando tu tarjeta...");
+
+      await loadCard($("customerName").value);
+    } catch (error) {
+      console.error(error);
+
+      setMessage(
+        error.message || "No se pudo verificar el código.",
+        "error"
+      );
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $("retryButton").addEventListener("click", () => {
+    confirmationResult = null;
+    showSection("registrationSection");
+    setMessage("Puedes ingresar otro número.");
+  });
+
+  $("refreshButton").addEventListener("click", async () => {
+    if (busy) return;
+
+    setBusy(true);
+
+    try {
+      await loadCard();
+    } catch (error) {
+      console.error(error);
+      setMessage(
+        error.message || "No se pudo actualizar la tarjeta.",
+        "error"
+      );
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  $("logoutButton").addEventListener("click", async () => {
+    if (busy) return;
+
+    setBusy(true);
+
+    try {
+      await signOut(auth);
+
+      confirmationResult = null;
+
+      showSection("registrationSection");
+
+      setMessage("Sesión cerrada.");
+    } catch (error) {
+      setMessage(error.message, "error");
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  onAuthStateChanged(auth, async user => {
+    if (!user) {
+      showSection("registrationSection");
+      setMessage("Ingresa tu celular para comenzar.");
+      return;
+    }
+
+    if (!user.phoneNumber) {
+      showSection("registrationSection");
+      setMessage(
+        "Esta cuenta no tiene un teléfono verificado.",
+        "error"
+      );
+      return;
+    }
+
+    setBusy(true);
+
+    try {
+      await loadCard($("customerName").value);
+    } catch (error) {
+      console.error(error);
+
+      showSection("registrationSection");
+
+      setMessage(
+        error.message ||
+        "No se pudo recuperar tu tarjeta.",
+        "error"
+      );
+    } finally {
+      setBusy(false);
+    }
+  });
+</script>
+</body>
+</html>
