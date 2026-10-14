@@ -7,6 +7,7 @@
     "firebase-admin": "^14.5.0",
     "google-auth-library": "^11.3.0",
     "jsonwebtoken": "^9.0.3",
+    "node-forge": "^1.4.0",
     "passkit-generator": "^3.6.1"
   }
 }
