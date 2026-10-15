@@ -1,20 +1,3 @@
-pass.primaryFields.splice(0, pass.primaryFields.length, {
-  key: "visits",
-  label: "VISITAS ACUMULADAS",
-  value: loyalty.visits
-});
-
-pass.secondaryFields.splice(0, pass.secondaryFields.length, {
-  key: "progress",
-  label: "PRÓXIMO CORTE GRATIS",
-  value: `${loyalty.progress} de 5 visitas`
-});
-
-pass.auxiliaryFields.splice(0, pass.auxiliaryFields.length, {
-  key: "rewardsAvailable",
-  label: "CORTES GRATIS DISPONIBLES",
-  value: loyalty.rewardsAvailable
-});
 import { PKPass } from "passkit-generator";
 import { initializeApp, cert, getApps } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
@@ -203,22 +186,22 @@ export const handler = async event => {
       }
     );
 
-    pass.primaryFields.push({
-      key: "totalVisits",
+    pass.primaryFields.splice(0, pass.primaryFields.length, {
+      key: "visits",
       label: "VISITAS ACUMULADAS",
       value: loyalty.visits
     });
 
-    pass.secondaryFields.push({
-      key: "rewardStatus",
-      label: "RECOMPENSAS DISPONIBLES",
-      value: loyalty.rewardsAvailable
+    pass.secondaryFields.splice(0, pass.secondaryFields.length, {
+      key: "progress",
+      label: "PRÓXIMO CORTE GRATIS",
+      value: `${loyalty.progress} de 5 visitas`
     });
 
-    pass.auxiliaryFields.push({
-      key: "nextReward",
-      label: "PROGRESO",
-      value: `${loyalty.progress} de 5 visitas`
+    pass.auxiliaryFields.splice(0, pass.auxiliaryFields.length, {
+      key: "rewardsAvailable",
+      label: "CORTES GRATIS DISPONIBLES",
+      value: loyalty.rewardsAvailable
     });
 
     pass.setBarcodes({
