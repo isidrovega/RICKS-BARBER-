@@ -1,0 +1,28 @@
+{
+  "formatVersion": 1,
+  "passTypeIdentifier": "pass.com.ricksbarbershop.loyalty",
+  "teamIdentifier": "TSQQ47VCR2",
+  "organizationName": "Rick's Barber Shop",
+  "description": "Tarjeta de lealtad Rick's Barber Shop",
+  "serialNumber": "ricks-template",
+  "backgroundColor": "rgb(18, 18, 18)",
+  "foregroundColor": "rgb(255, 255, 255)",
+  "labelColor": "rgb(212, 175, 55)",
+  "logoText": "Rick's Barber Shop",
+  "storeCard": {
+    "primaryFields": [
+      {
+        "key": "visits",
+        "label": "VISITAS",
+        "value": 0
+      }
+    ],
+    "secondaryFields": [
+      {
+        "key": "progress",
+        "label": "PRÓXIMO CORTE GRATIS",
+        "value": "0 de 5 visitas"
+      }
+    ]
+  }
+}

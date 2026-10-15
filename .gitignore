@@ -75,3 +75,13 @@ node_modules/
 *.pem
 *service-account*.json
 *credentials*.json
+
+# Local Netlify folder
+.netlify
+
+# Apple Wallet - certificados privados
+*.p12
+*.cer
+apple-wallet-certificates.zip
+apple-wallet-certificates.enc
+ricks-wallet-certs/
