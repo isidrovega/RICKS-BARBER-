@@ -11,6 +11,8 @@ import {
     runTransaction
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
+import { downloadAppleWallet } from "./apple-wallet.js";
+
 const VISITS_REQUIRED = 5;
 
 let customers = [];
@@ -42,6 +44,7 @@ const elements = {
 
     redeemButton: document.getElementById("redeemRewardButton"),
     addVisitButton: document.getElementById("addVisitModalButton"),
+appleWalletButton: document.getElementById("downloadAppleWalletButton"),
     registerButton: document.getElementById("registerVisitButton"),
 
     visitSearch: document.getElementById("visitCustomerSearch"),
@@ -845,6 +848,37 @@ function configureEvents() {
         "click",
         redeemSelectedReward
     );
+
+
+elements.appleWalletButton.addEventListener(
+    "click",
+    async () => {
+        if (!selectedCustomerId) {
+            alert("Selecciona un cliente primero.");
+            return;
+        }
+
+        const button = elements.appleWalletButton;
+
+        button.disabled = true;
+        const originalText = button.textContent;
+        button.textContent = "Preparando tarjeta...";
+
+        try {
+            await downloadAppleWallet(selectedCustomerId);
+        } catch (error) {
+            console.error("Error de Apple Wallet:", error);
+            alert(
+                error.message ||
+                "No fue posible descargar la tarjeta."
+            );
+        } finally {
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }
+);
+
 
     elements.visitSearch.addEventListener(
         "input",
