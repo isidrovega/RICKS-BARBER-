@@ -5,9 +5,10 @@ import {
   cert,
   getApps
 } from "firebase-admin/app";
-import { getAuth } from "firebase-admin/auth";
+import jwt from "jsonwebtoken";
 import { getFirestore } from "firebase-admin/firestore";
 import path from "node:path";
+import { createPublicKey } from "node:crypto";
 
 import { getWalletObjectId } from "./wallet-id.mjs";
 import { loadAppleCertificates } from "../lib/apple-wallet-certificates.mjs";
@@ -142,48 +143,47 @@ export const handler = async event => {
   try {
     const app = getFirebaseApp();
 
-    const decoded = await getAuth(app).verifyIdToken(
-      match[1],
-      true
+    const credentials = JSON.parse(
+      process.env.GOOGLE_WALLET_CREDENTIALS || "{}"
     );
 
-    if (
-      decoded.firebase?.sign_in_provider !== "phone" ||
-      typeof decoded.phone_number !== "string"
-    ) {
+    let decoded;
+
+    try {
+      decoded = jwt.verify(
+        match[1],
+        createPublicKey(credentials.private_key),
+        {
+          algorithms: ["RS256"],
+          issuer: "ricks-barber-shop",
+          audience: "apple-wallet-public"
+        }
+      );
+    } catch {
       return respond(
-        403,
-        "Debes verificar tu teléfono mediante SMS."
+        401,
+        "El acceso a Apple Wallet expiró. Solicita tu tarjeta nuevamente."
       );
     }
 
-    const verifiedPhone = normalizePhone(
-      decoded.phone_number
-    );
-
     if (
-      !decoded.phone_number.startsWith("+52") ||
-      verifiedPhone.length !== 12
+      decoded.purpose !== "apple-wallet-public" ||
+      typeof decoded.customerId !== "string" ||
+      !decoded.customerId ||
+      decoded.customerId.includes("/")
     ) {
-      return respond(
-        403,
-        "Se requiere un número mexicano verificado."
-      );
+      return respond(403, "Acceso no autorizado.");
     }
-
-    const phone = verifiedPhone.slice(2);
 
     const db = getFirestore(app);
-    const customerSnapshot = await findCustomerByPhone(
-      db,
-      phone
-    );
 
-    if (!customerSnapshot) {
-      return respond(
-        404,
-        "No encontramos una tarjeta para este teléfono. Regístrate primero."
-      );
+    const customerSnapshot = await db
+      .collection("customers")
+      .doc(decoded.customerId)
+      .get();
+
+    if (!customerSnapshot.exists) {
+      return respond(404, "No encontramos tu tarjeta.");
     }
 
     const customer = customerSnapshot.data();

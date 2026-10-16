@@ -533,9 +533,24 @@ export const handler = async event => {
       walletObjectId
     );
 
+    const appleWalletToken = jwt.sign(
+      {
+        purpose: "apple-wallet-public",
+        customerId: customer.id
+      },
+      credentials.private_key,
+      {
+        algorithm: "RS256",
+        expiresIn: "5m",
+        issuer: "ricks-barber-shop",
+        audience: "apple-wallet-public"
+      }
+    );
+
     return respond(200, {
       ok: true,
-      saveUrl
+      saveUrl,
+      appleWalletToken
     });
   } catch (error) {
     console.error(
