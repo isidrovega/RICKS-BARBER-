@@ -157,9 +157,9 @@ function configureEvents() {
     saveButton?.addEventListener("click", saveNewAppointment);
 
     document.getElementById("qrButton")
-        ?.addEventListener("click", () => {
-            showToast("El escáner QR será el siguiente módulo.");
-        });
+    ?.addEventListener("click", () => {
+        window.location.href = "escanear-qr.html";
+    });
 
     phoneInput.addEventListener("input", detectCustomer);
 

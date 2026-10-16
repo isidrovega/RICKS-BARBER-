@@ -1,0 +1,160 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Escanear QR | Rick's Barber Shop</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 24px;
+            background: #f4f4f4;
+            color: #222;
+            font-family: Arial, sans-serif;
+        }
+
+        .container {
+            max-width: 520px;
+            margin: 30px auto;
+            padding: 24px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 26px;
+        }
+
+        .subtitle {
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .scanner {
+            margin: 24px 0;
+            min-height: 220px;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin-top: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #222;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+        }
+
+        .btn:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #222;
+            border: 1px solid #222;
+        }
+
+        .customer {
+            margin-top: 20px;
+            padding: 18px;
+            border-radius: 10px;
+            background: #f5f5f5;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #status {
+            margin-top: 16px;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container">
+        <h1>Escanear QR</h1>
+
+        <p class="subtitle">
+            Escanea la tarjeta de fidelidad del cliente
+            desde Google Wallet o Apple Wallet.
+        </p>
+
+        <div id="scanner" class="scanner">
+            Preparando escáner...
+        </div>
+
+        <button
+            id="startScanner"
+            class="btn"
+            type="button"
+            disabled
+        >
+            Iniciar cámara
+        </button>
+
+        <p id="status" role="status" aria-live="polite">
+            Verificando acceso administrativo...
+        </p>
+
+        <section id="customerInfo" class="customer hidden">
+            <h2 id="customerName">Cliente</h2>
+
+            <p>
+                Visitas acumuladas:
+                <strong id="customerVisits">0</strong>
+            </p>
+
+            <button
+                id="confirmVisit"
+                class="btn"
+                type="button"
+                disabled
+            >
+                Confirmar visita
+            </button>
+        </section>
+
+        <a href="index.html" class="btn btn-outline">
+            Volver al panel
+        </a>
+    </main>
+
+    <script type="module">
+        import { requireAdmin } from "./js/auth.js";
+
+        const admin = await requireAdmin();
+
+        if (admin) {
+            document.getElementById("status").textContent =
+                "Acceso autorizado. Preparando módulo QR.";
+
+            await import("./js/qr-scanner.js");
+        }
+    </script>
+</body>
+</html>
