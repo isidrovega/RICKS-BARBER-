@@ -5,15 +5,15 @@
   "organizationName": "Rick's Barber Shop",
   "description": "Tarjeta de lealtad Rick's Barber Shop",
   "serialNumber": "ricks-template",
-  "backgroundColor": "rgb(18, 18, 18)",
+  "backgroundColor": "rgb(179, 0, 11)",
   "foregroundColor": "rgb(255, 255, 255)",
-  "labelColor": "rgb(212, 175, 55)",
+  "labelColor": "rgb(255, 215, 122)",
   "logoText": "Rick's Barber Shop",
   "storeCard": {
     "primaryFields": [
       {
         "key": "visits",
-        "label": "VISITAS",
+        "label": "VISITAS ACUMULADAS",
         "value": 0
       }
     ],
