@@ -179,16 +179,65 @@
       aria-live="polite"
     ></p>
 
-    <div id="walletResult" class="hidden">
-      <a
-        id="googleWalletLink"
-        class="wallet-link"
-        href="#"
-        rel="noopener noreferrer"
-      >
-        Guardar en Google Wallet
-      </a>
-    </div>
+
+<div id="phoneVerification" class="hidden">
+  <p class="subtitle">
+    Te enviaremos un código SMS para verificar
+    que este número de teléfono es tuyo.
+  </p>
+
+  <div id="recaptcha-container"></div>
+
+  <button
+    id="sendVerificationCodeButton"
+    type="button"
+  >
+    Enviar código SMS
+  </button>
+
+  <label for="verificationCode">
+    Código de verificación
+  </label>
+
+  <input
+    id="verificationCode"
+    type="text"
+    inputmode="numeric"
+    autocomplete="one-time-code"
+    maxlength="6"
+    placeholder="Código de 6 dígitos"
+  >
+
+  <button
+    id="verifyPhoneButton"
+    type="button"
+  >
+    Verificar mi número
+  </button>
+</div>
+
+
+    
+<div id="walletResult" class="hidden">
+  <a
+    id="googleWalletLink"
+    class="wallet-link"
+    href="#"
+    rel="noopener noreferrer"
+  >
+    Guardar en Google Wallet
+  </a>
+
+  <button
+    id="appleWalletButton"
+    type="button"
+    class="wallet-link"
+    disabled
+  >
+    Agregar a Apple Wallet
+  </button>
+</div>
+
 
     <p class="footer">
       Rick's Barber Shop · Programa de fidelidad
