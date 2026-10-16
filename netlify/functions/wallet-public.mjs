@@ -146,7 +146,7 @@ async function checkRateLimit(db, ip, credentials) {
       ? Number(previous.count || 0)
       : 0;
 
-    if (count >= 5) {
+    if (count >= 100) {
       return false;
     }
 
