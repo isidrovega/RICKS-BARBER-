@@ -230,17 +230,11 @@ export const handler = async event => {
     );
 
    
-    pass.primaryFields[0] = {
-  key: "visits",
-  label: "VISITAS ACUMULADAS",
-  value: loyalty.visits
-};
+    pass.primaryFields[0].label = "VISITAS ACUMULADAS";
+pass.primaryFields[0].value = loyalty.visits;
 
-    pass.secondaryFields[0] = {
-  key: "progress",
-  label: "PRÓXIMO CORTE GRATIS",
-  value: `${loyalty.progress} de 5 visitas`
-};
+pass.secondaryFields[0].label = "PRÓXIMO CORTE GRATIS";
+pass.secondaryFields[0].value = `${loyalty.progress} de 5 visitas`;
 
     pass.auxiliaryFields.splice(
       0,
