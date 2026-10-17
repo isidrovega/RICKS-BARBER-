@@ -1,0 +1,282 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Conoce Rick's Barber Shop, nuestros servicios de barbería y nuestro programa de fidelidad.">
+    <title>Rick's Barber Shop | Sitio oficial</title>
+
+    <style>
+        :root {
+            color-scheme: dark;
+            --background: #111111;
+            --surface: #1c1c1c;
+            --gold: #d8ad67;
+            --text: #f7f7f7;
+            --muted: #bcbcbc;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--text);
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.6;
+        }
+
+        header {
+            padding: 22px 24px;
+            border-bottom: 1px solid #333;
+        }
+
+        .header-content {
+            max-width: 960px;
+            margin: auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            color: var(--gold);
+            font-size: 20px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        nav a {
+            color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        main {
+            max-width: 960px;
+            margin: auto;
+            padding: 64px 24px;
+        }
+
+        .hero {
+            text-align: center;
+            padding-bottom: 48px;
+        }
+
+        .eyebrow {
+            color: var(--gold);
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 12px;
+        }
+
+        h1 {
+            margin: 16px 0;
+            font-size: clamp(36px, 7vw, 64px);
+            line-height: 1.15;
+        }
+
+        h2 {
+            color: var(--gold);
+            font-size: 26px;
+        }
+
+        .hero p,
+        .description {
+            color: var(--muted);
+            max-width: 650px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .section {
+            margin-top: 36px;
+            padding: 30px;
+            background: var(--surface);
+            border: 1px solid #333;
+            border-radius: 14px;
+        }
+
+        .services {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 16px;
+            margin-top: 22px;
+        }
+
+        .service {
+            padding: 20px;
+            background: #262626;
+            border-radius: 10px;
+        }
+
+        .service h3 {
+            margin-top: 0;
+            color: var(--text);
+        }
+
+        .service p {
+            margin-bottom: 0;
+            color: var(--muted);
+        }
+
+        .button {
+            display: inline-block;
+            margin-top: 18px;
+            padding: 14px 24px;
+            background: var(--gold);
+            color: #111;
+            border-radius: 8px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        footer {
+            padding: 28px 24px;
+            border-top: 1px solid #333;
+            color: var(--muted);
+            text-align: center;
+            font-size: 14px;
+        }
+
+        @media (max-width: 600px) {
+            main {
+                padding: 42px 18px;
+            }
+
+            .section {
+                padding: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-content">
+            <a class="brand" href="nosotros.html">
+                Rick's Barber Shop
+            </a>
+
+            <nav aria-label="Navegación principal">
+                <a href="mi-tarjeta.html">Programa de fidelidad</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <span class="eyebrow">Bienvenido</span>
+
+            <h1>Rick's Barber Shop</h1>
+
+            <p>
+                Barbería dedicada al cuidado personal,
+                la atención a nuestros clientes
+                y la experiencia de un buen corte.
+            </p>
+        </section>
+
+        <section class="section">
+            <h2>Sobre nosotros</h2>
+
+            <p>
+                En Rick's Barber Shop buscamos ofrecer
+                una experiencia de barbería con atención
+                personalizada y un servicio de calidad.
+            </p>
+
+            <p>
+                Nuestro objetivo es que cada cliente
+                disfrute su visita y encuentre un espacio
+                donde cuidar su estilo.
+            </p>
+        </section>
+
+        <section class="section">
+            <h2>Nuestros servicios</h2>
+
+            <div class="services">
+                <article class="service">
+                    <h3>Cortes de cabello</h3>
+                    <p>
+                        Cortes adaptados al estilo
+                        y preferencias de cada cliente.
+                    </p>
+                </article>
+
+                <article class="service">
+                    <h3>Arreglo de barba</h3>
+                    <p>
+                        Cuidado y arreglo de barba
+                        para mantener una buena presentación.
+                    </p>
+                </article>
+
+                <article class="service">
+                    <h3>Atención personalizada</h3>
+                    <p>
+                        Una experiencia enfocada
+                        en el cuidado y la satisfacción
+                        de nuestros clientes.
+                    </p>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2>Programa de fidelidad</h2>
+
+            <p>
+                En Rick's Barber Shop contamos con
+                un programa de fidelidad para nuestros clientes.
+            </p>
+
+            <p>
+                Por cada cinco visitas acumuladas,
+                nuestros clientes pueden obtener
+                un corte gratis conforme a las condiciones
+                del programa.
+            </p>
+
+            <p>
+                La tarjeta de fidelidad está disponible
+                para Google Wallet y Apple Wallet.
+            </p>
+
+            <a class="button" href="mi-tarjeta.html">
+                Obtener mi tarjeta
+            </a>
+        </section>
+    </main>
+
+    
+<footer>
+    <p>Rick's Barber Shop</p>
+
+    <p>
+        Síguenos en Instagram:
+        <a
+            href="https://www.instagram.com/ricks_barbershopmx/"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="color: #d8ad67;"
+        >
+            @ricks_barbershopmx
+        </a>
+    </p>
+
+    <p>
+        © 2026 Rick's Barber Shop.
+        Todos los derechos reservados.
+    </p>
+</footer>
+</body>
+</html>
+
