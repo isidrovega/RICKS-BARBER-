@@ -1,6 +1,8 @@
 
 import { db } from "./firebase.js";
 
+import { updateCustomerWallet } from "./wallet-sync.js";
+
 import {
     getCustomers,
     normalizePhone
@@ -10,8 +12,6 @@ import {
     doc,
     runTransaction
 } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
-
-
 
 const VISITS_REQUIRED = 5;
 
@@ -89,7 +89,7 @@ function showToast(message) {
 
     toastTimer = setTimeout(() => {
         elements.toast.classList.remove("show");
-    }, 3000);
+    }, 5000);
 }
 
 function getCustomerById(id) {
@@ -102,6 +102,53 @@ function normalizeCount(value) {
     return Number.isFinite(number)
         ? Math.max(0, Math.floor(number))
         : 0;
+}
+
+/*
+ * Actualiza Google Wallet utilizando el módulo
+ * autenticado que ya existe en el proyecto.
+ *
+ * Esta función nunca modifica las visitas
+ * ni las recompensas almacenadas en Firebase.
+ *
+ * Si falla Google Wallet, devuelve un aviso
+ * sin convertir la operación de Firebase
+ * en un error.
+ */
+async function synchronizeGoogleWallet(customerId) {
+    try {
+        const result = await updateCustomerWallet(customerId);
+
+        if (result.walletUpdated === true) {
+            return {
+                success: true,
+                message: "Google Wallet actualizado."
+            };
+        }
+
+        if (result.walletExists === false) {
+            return {
+                success: true,
+                message: "El cliente todavía no tiene una tarjeta activa de Google Wallet."
+            };
+        }
+
+        return {
+            success: true,
+            message: "Google Wallet ya está actualizado."
+        };
+
+    } catch (error) {
+        console.error(
+            "Error sincronizando Google Wallet:",
+            error
+        );
+
+        return {
+            success: false,
+            message: "No se pudo actualizar Google Wallet. La operación sí quedó guardada en Firebase."
+        };
+    }
 }
 
 /* ==========================================
@@ -179,9 +226,11 @@ async function refreshCustomers() {
 }
 
 /*
- * Las visitas se incrementan en una transacción.
- * Así evitamos perder incrementos si dos
- * administradores actualizan al mismo cliente.
+ * Registra exactamente una visita mediante
+ * una transacción de Firestore.
+ *
+ * Después intenta sincronizar Google Wallet.
+ * Un error de Wallet no revierte la visita.
  */
 async function registerCustomerVisit(customerId) {
     if (operationInProgress) {
@@ -197,6 +246,8 @@ async function registerCustomerVisit(customerId) {
 
     operationInProgress = true;
     updateOperationButtons();
+
+    let visitSaved = false;
 
     try {
         const customerRef = doc(
@@ -216,17 +267,51 @@ async function registerCustomerVisit(customerId) {
                 snapshot.data().visits
             );
 
+            const nextVisits = currentVisits + 1;
+
+            if (!Number.isSafeInteger(nextVisits)) {
+                throw new Error(
+                    "El contador de visitas no es válido."
+                );
+            }
+
             transaction.update(customerRef, {
-                visits: currentVisits + 1,
+                visits: nextVisits,
                 updatedAt: new Date().toISOString()
             });
         });
 
-        await refreshCustomers();
+        visitSaved = true;
 
-        showToast(
-            `Visita registrada para ${customer.name}.`
+        let refreshFailed = false;
+
+        try {
+            await refreshCustomers();
+        } catch (error) {
+            refreshFailed = true;
+
+            console.error(
+                "La visita se guardó, pero no se pudo refrescar Fidelidad:",
+                error
+            );
+        }
+
+        const walletResult = await synchronizeGoogleWallet(
+            customerId
         );
+
+        const messages = [
+            `Visita registrada para ${customer.name}.`,
+            walletResult.message
+        ];
+
+        if (refreshFailed) {
+            messages.push(
+                "Actualiza la página para ver el nuevo total."
+            );
+        }
+
+        showToast(messages.join(" "));
 
         return true;
 
@@ -234,10 +319,12 @@ async function registerCustomerVisit(customerId) {
         console.error("Error registrando visita:", error);
 
         showToast(
-            "No fue posible registrar la visita."
+            visitSaved
+                ? "La visita se guardó, pero ocurrió un error posterior. No vuelvas a registrarla; actualiza la página."
+                : "No fue posible registrar la visita."
         );
 
-        return false;
+        return visitSaved;
 
     } finally {
         operationInProgress = false;
@@ -247,8 +334,10 @@ async function registerCustomerVisit(customerId) {
 
 /*
  * El canje también es transaccional.
- * Se vuelve a verificar el saldo dentro
- * de Firestore antes de descontar la recompensa.
+ * Se verifica el saldo dentro de Firestore
+ * antes de descontar una recompensa.
+ *
+ * Después se sincroniza Google Wallet.
  */
 async function redeemSelectedReward() {
     if (!selectedCustomerId || operationInProgress) {
@@ -259,6 +348,8 @@ async function redeemSelectedReward() {
 
     operationInProgress = true;
     updateOperationButtons();
+
+    let rewardSaved = false;
 
     try {
         const customerRef = doc(
@@ -275,7 +366,6 @@ async function redeemSelectedReward() {
             }
 
             const data = snapshot.data();
-
             const loyalty = getLoyaltyData(data);
 
             if (loyalty.availableRewards <= 0) {
@@ -290,27 +380,63 @@ async function redeemSelectedReward() {
             });
         });
 
-        await refreshCustomers();
+        rewardSaved = true;
 
-        showToast("Recompensa canjeada correctamente.");
+        let refreshFailed = false;
+
+        try {
+            await refreshCustomers();
+        } catch (error) {
+            refreshFailed = true;
+
+            console.error(
+                "El canje se guardó, pero no se pudo refrescar Fidelidad:",
+                error
+            );
+        }
+
+        const walletResult = await synchronizeGoogleWallet(
+            customerId
+        );
+
+        const messages = [
+            "Recompensa canjeada correctamente.",
+            walletResult.message
+        ];
+
+        if (refreshFailed) {
+            messages.push(
+                "Actualiza la página para ver el nuevo saldo."
+            );
+        }
+
+        showToast(messages.join(" "));
 
     } catch (error) {
         console.error("Error canjeando recompensa:", error);
 
-        showToast(
-            error.message ===
-                "El cliente no tiene recompensas disponibles."
-                ? error.message
-                : "No fue posible canjear la recompensa."
-        );
-
-        try {
-            await refreshCustomers();
-        } catch (refreshError) {
-            console.error(
-                "Error actualizando clientes:",
-                refreshError
+        if (rewardSaved) {
+            showToast(
+                "La recompensa se canjeó, pero ocurrió un error posterior. No repitas el canje; actualiza la página."
             );
+        } else {
+            showToast(
+                error.message ===
+                    "El cliente no tiene recompensas disponibles."
+                    ? error.message
+                    : "No fue posible canjear la recompensa."
+            );
+        }
+
+        if (!rewardSaved) {
+            try {
+                await refreshCustomers();
+            } catch (refreshError) {
+                console.error(
+                    "Error actualizando clientes:",
+                    refreshError
+                );
+            }
         }
 
     } finally {
@@ -848,10 +974,6 @@ function configureEvents() {
         "click",
         redeemSelectedReward
     );
-
-
-
-
 
     elements.visitSearch.addEventListener(
         "input",
