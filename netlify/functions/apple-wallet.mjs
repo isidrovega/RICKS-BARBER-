@@ -6,6 +6,7 @@ import path from "node:path";
 
 import { getWalletObjectId } from "./wallet-id.mjs";
 import { loadAppleCertificates } from "../lib/apple-wallet-certificates.mjs";
+import { createAppleWalletPass } from "../lib/apple-wallet-pass.mjs";
 
 const PROJECT_ID = "ricks-barber-shop";
 const QR_PATTERN = /^[a-f0-9]{64}$/;
@@ -165,53 +166,12 @@ export const handler = async event => {
       );
     }
 
-    const certificates = await loadAppleCertificates(event);
-
-    const modelPath = path.join(
-      process.env.LAMBDA_TASK_ROOT || process.cwd(),
-      "passModels",
-      "ricksLoyalty.pass"
-    );
-
-    const loyalty = getLoyalty(customer);
-
-    const pass = await PKPass.from(
-      {
-        model: modelPath,
-        certificates
-      },
-      {
-        serialNumber: walletObjectId,
-        description: "Tarjeta de lealtad Rick's Barber Shop"
-      }
-    );
-
-    pass.primaryFields.splice(0, pass.primaryFields.length, {
-      key: "visits",
-      label: "VISITAS ACUMULADAS",
-      value: loyalty.visits
+    const buffer = await createAppleWalletPass({
+      event,
+      customerId: id,
+      customer,
+      qrToken
     });
-
-    pass.secondaryFields.splice(0, pass.secondaryFields.length, {
-      key: "progress",
-      label: "PRÓXIMO CORTE GRATIS",
-      value: `${loyalty.progress} de 5 visitas`
-    });
-
-    pass.auxiliaryFields.splice(0, pass.auxiliaryFields.length, {
-      key: "rewardsAvailable",
-      label: "CORTES GRATIS DISPONIBLES",
-      value: loyalty.rewardsAvailable
-    });
-
-    pass.setBarcodes({
-      format: "PKBarcodeFormatQR",
-      message: qrToken,
-      messageEncoding: "iso-8859-1",
-      altText: "Rick's Barber Shop"
-    });
-
-    const buffer = pass.getAsBuffer();
 
     return {
       statusCode: 200,

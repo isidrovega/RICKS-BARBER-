@@ -86,9 +86,69 @@ export async function syncCustomerWallet(
  * Tampoco modifica los datos del cliente en Firestore.
  */
 export async function updateCustomerWallet(customerId) {
-    return requestWallet(customerId, {
+    const appleNotification = notifyAppleWallet(customerId);
+
+    const googleResult = await requestWallet(customerId, {
         updateWallet: true
-    });
+    }).then(
+        result => ({ result }),
+        error => ({ error })
+    );
+
+    await appleNotification;
+
+    if (googleResult.error) {
+        throw googleResult.error;
+    }
+
+    return googleResult.result;
+}
+
+/**
+ * Notifica a los iPhone registrados que deben
+ * consultar una versión actualizada de su tarjeta.
+ *
+ * Un error de Apple Wallet no afecta la actualización
+ * de Google Wallet ni las visitas guardadas.
+ */
+async function notifyAppleWallet(customerId) {
+    try {
+        await auth.authStateReady();
+
+        const user = auth.currentUser;
+
+        if (!user) {
+            return;
+        }
+
+        const firebaseToken = await user.getIdToken();
+
+        const response = await fetch(
+            "/.netlify/functions/apple-wallet-notify",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${firebaseToken}`
+                },
+                body: JSON.stringify({
+                    customerId: customerId.trim()
+                })
+            }
+        );
+
+        if (!response.ok) {
+            console.warn(
+                "No se pudo notificar a Apple Wallet:",
+                response.status
+            );
+        }
+    } catch (error) {
+        console.warn(
+            "Error al notificar a Apple Wallet:",
+            error.message
+        );
+    }
 }
 
 /**

@@ -2,3 +2,9 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   included_files = ["passModels/ricksLoyalty.pass/**"]
+
+[[redirects]]
+  from = "/v1/*"
+  to = "/.netlify/functions/apple-pass-service/:splat"
+  status = 200
+  force = true
