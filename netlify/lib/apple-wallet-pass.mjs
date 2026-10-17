@@ -70,25 +70,10 @@ export async function createAppleWalletPass({
     }
   );
 
-  pass.primaryFields.splice(
-    0,
-    pass.primaryFields.length,
-    {
-      key: "visits",
-      label: "VISITAS ACUMULADAS",
-      value: loyalty.visits
-    }
-  );
+  pass.primaryFields[0].value = loyalty.visits;
 
-  pass.secondaryFields.splice(
-    0,
-    pass.secondaryFields.length,
-    {
-      key: "progress",
-      label: "PRÓXIMO CORTE GRATIS",
-      value: `${loyalty.progress} de 5 visitas`
-    }
-  );
+  pass.secondaryFields[0].value =
+    `${loyalty.progress} de 5 visitas`;
 
   pass.auxiliaryFields.splice(
     0,
